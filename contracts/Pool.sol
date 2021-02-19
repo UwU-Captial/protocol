@@ -94,7 +94,7 @@ contract LPTokenWrapper {
     }
 }
 
-contract StakingPool is
+contract Pool is
     Initializable,
     LPTokenWrapper,
     IRewardDistributionRecipient
