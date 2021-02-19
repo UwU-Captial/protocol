@@ -6,34 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./lib/SafeMathInt.sol";
 
-/**
- * @title uFragments ERC20 token
- * @dev This is part of an implementation of the uFragments Ideal Money protocol.
- *      uFragments is a normal ERC20 token, but its supply can be adjusted by splitting and
- *      combining tokens proportionally across all wallets.
- *
- *      uFragment balances are internally represented with a hidden denomination, 'gons'.
- *      We support splitting the currency in expansion and combining the currency on contraction by
- *      changing the exchange rate between the hidden 'gons' and the public 'fragments'.
- */
 contract Debase is ERC20, Initializable {
-    // PLEASE READ BEFORE CHANGING ANY ACCOUNTING OR MATH
-    // Anytime there is division, there is a risk of numerical instability from rounding errors. In
-    // order to minimize this risk, we adhere to the following guidelines:
-    // 1) The conversion rate adopted is the number of gons that equals 1 fragment.
-    //    The inverse rate must not be used--TOTAL_GONS is always the numerator and _totalSupply is
-    //    always the denominator. (i.e. If you want to convert gons to fragments instead of
-    //    multiplying by the inverse rate, you should divide by the normal rate)
-    // 2) Gon balances converted into Fragments are always rounded down (truncated).
-    //
-    // We make the following guarantees:
-    // - If address 'A' transfers x Fragments to address 'B'. A's resulting external balance will
-    //   be decreased by precisely x Fragments, and B's external balance will be precisely
-    //   increased by x Fragments.
-    //
-    // We do not guarantee that the sum of all balances equals the result of calling totalSupply().
-    // This is because, for any conversion function 'f()' that has non-zero rounding error,
-    // f(x0) + f(x1) + ... + f(xn) is not always equal to f(x0 + x1 + ... xn).
     using SafeMath for uint256;
     using SafeMathInt for int256;
 
@@ -54,24 +27,24 @@ contract Debase is ERC20, Initializable {
     }
 
     uint256 private constant DECIMALS = 18;
-    uint256 private constant MAX_UINT256 = ~uint256(0);
-    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 1000000 * 10**DECIMALS;
+    uint256 constant MAX_UINT256 = ~uint256(0);
+    uint256 constant INITIAL_FRAGMENTS_SUPPLY = 1000000 * 10**DECIMALS;
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that _gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
-    uint256 private constant TOTAL_GONS = MAX_UINT256 -
-        (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
+    uint256 constant TOTAL_GONS =
+        MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
 
     // MAX_SUPPLY = maximum integer < (sqrt(4*TOTAL_GONS + 1) - 1) / 2
-    uint256 private constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
+    uint256 constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
 
     uint256 private _totalSupply;
-    uint256 private _gonsPerFragment;
-    mapping(address => uint256) private _gonBalances;
+    uint256 _gonsPerFragment;
+    mapping(address => uint256) _gonBalances;
 
     // This is denominated in Fragments, because the gons-fragments conversion might change before
     // it's fully paid.
-    mapping(address => mapping(address => uint256)) private _allowedFragments;
+    mapping(address => mapping(address => uint256)) _allowedFragments;
 
     constructor() public ERC20("Debase", "DEBASE") {}
 
@@ -209,7 +182,7 @@ contract Debase is ERC20, Initializable {
     /**
      * @return The total number of fragments.
      */
-    function totalSupply() public override view returns (uint256) {
+    function totalSupply() public view override returns (uint256) {
         return _totalSupply;
     }
 
@@ -217,7 +190,7 @@ contract Debase is ERC20, Initializable {
      * @param who The address to query.
      * @return The balance of the specified address.
      */
-    function balanceOf(address who) public override view returns (uint256) {
+    function balanceOf(address who) public view override returns (uint256) {
         return _gonBalances[who].div(_gonsPerFragment);
     }
 
@@ -248,8 +221,8 @@ contract Debase is ERC20, Initializable {
      */
     function allowance(address owner_, address spender)
         public
-        override
         view
+        override
         returns (uint256)
     {
         return _allowedFragments[owner_][spender];
@@ -266,8 +239,9 @@ contract Debase is ERC20, Initializable {
         address to,
         uint256 value
     ) public override validRecipient(to) returns (bool) {
-        _allowedFragments[from][msg.sender] = _allowedFragments[from][msg
-            .sender]
+        _allowedFragments[from][msg.sender] = _allowedFragments[from][
+            msg.sender
+        ]
             .sub(value);
 
         uint256 gonValue = value.mul(_gonsPerFragment);
@@ -311,8 +285,9 @@ contract Debase is ERC20, Initializable {
         override
         returns (bool)
     {
-        _allowedFragments[msg.sender][spender] = _allowedFragments[msg
-            .sender][spender]
+        _allowedFragments[msg.sender][spender] = _allowedFragments[msg.sender][
+            spender
+        ]
             .add(addedValue);
         emit Approval(
             msg.sender,

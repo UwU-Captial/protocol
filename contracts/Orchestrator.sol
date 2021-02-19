@@ -84,18 +84,19 @@ contract Orchestrator is Ownable, Initializable {
     {
         address first = left < right ? left : right;
         address second = left < right ? right : left;
-        address pair = address(
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        hex"ff",
-                        uniFactory,
-                        keccak256(abi.encodePacked(first, second)),
-                        hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
+        address pair =
+            address(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            hex"ff",
+                            uniFactory,
+                            keccak256(abi.encodePacked(first, second)),
+                            hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
+                        )
                     )
                 )
-            )
-        );
+            );
         return UniV2PairI(pair);
     }
 
@@ -168,9 +169,10 @@ contract Orchestrator is Ownable, Initializable {
         // Rebase will only be called when 95% of the total supply has been distributed or current time is 3 weeks since the orchestrator was deployed.
         // To stop the rebase from getting stuck if no enough rewards are distributed. This will also start the degov/debase pool reward drops
         if (!rebaseStarted) {
-            uint256 rewardsDistributed = debaseDaiPool.rewardDistributed().add(
-                debaseDaiLpPool.rewardDistributed()
-            );
+            uint256 rewardsDistributed =
+                debaseDaiPool.rewardDistributed().add(
+                    debaseDaiLpPool.rewardDistributed()
+                );
 
             require(
                 rewardsDistributed >= rebaseRequiredSupply ||

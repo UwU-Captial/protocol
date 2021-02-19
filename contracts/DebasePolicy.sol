@@ -1,4 +1,20 @@
 // SPDX-License-Identifier: MIT
+/*
+
+██████╗ ███████╗██████╗  █████╗ ███████╗███████╗
+██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
+██║  ██║█████╗  ██████╔╝███████║███████╗█████╗  
+██║  ██║██╔══╝  ██╔══██╗██╔══██║╚════██║██╔══╝  
+██████╔╝███████╗██████╔╝██║  ██║███████║███████╗
+╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
+                                               
+
+* Debase: ExpansionRewarder.sol
+* Description:
+* Pool that pool the issues rewards on expansions of debase supply
+* Coded by: punkUnknown
+*/
+
 pragma solidity >=0.6.6;
 pragma experimental ABIEncoderV2;
 
@@ -187,9 +203,9 @@ contract DebasePolicy is Ownable, Initializable {
 
     // Due to the expression in computeSupplyDelta(), MAX_RATE * MAX_SUPPLY must fit into an int256.
     // Both are 18 decimals fixed point numbers.
-    uint256 private constant MAX_RATE = 10**6 * 10**DECIMALS;
+    uint256 constant MAX_RATE = 10**6 * 10**DECIMALS;
     // MAX_SUPPLY = MAX_INT256 / MAX_RATE
-    uint256 private constant MAX_SUPPLY = ~(uint256(1) << 255) / MAX_RATE;
+    uint256 constant MAX_SUPPLY = ~(uint256(1) << 255) / MAX_RATE;
 
     // This module orchestrates the rebase execution and downstream notification.
     address public orchestrator;
@@ -238,10 +254,8 @@ contract DebasePolicy is Ownable, Initializable {
     }
 
     function addNewStabilizerPool(address pool_) external onlyOwner {
-        StabilizerPool memory instance = StabilizerPool(
-            false,
-            StabilizerI(pool_)
-        );
+        StabilizerPool memory instance =
+            StabilizerPool(false, StabilizerI(pool_));
 
         require(
             instance.pool.owner() == owner(),
@@ -365,14 +379,13 @@ contract DebasePolicy is Ownable, Initializable {
         ) {
             StabilizerPool memory instance = stabilizerPools[index];
             if (instance.enabled) {
-                uint256 rewardToTransfer = instance
-                    .pool
-                    .checkStabilizerAndGetReward(
-                    supplyDelta_,
-                    rebaseLag_,
-                    exchangeRate_,
-                    debase.balanceOf(address(this))
-                );
+                uint256 rewardToTransfer =
+                    instance.pool.checkStabilizerAndGetReward(
+                        supplyDelta_,
+                        rebaseLag_,
+                        exchangeRate_,
+                        debase.balanceOf(address(this))
+                    );
 
                 if (rewardToTransfer != 0) {
                     debase.transfer(address(instance.pool), rewardToTransfer);
@@ -504,11 +517,8 @@ contract DebasePolicy is Ownable, Initializable {
         );
         require(lag_ > 0, "Lag can't be zero");
 
-        LagBreakpoint memory newPoint = LagBreakpoint(
-            lowerDelta_,
-            upperDelta_,
-            lag_
-        );
+        LagBreakpoint memory newPoint =
+            LagBreakpoint(lowerDelta_, upperDelta_, lag_);
 
         LagBreakpoint memory lastPoint;
         uint256 length;
@@ -622,18 +632,18 @@ contract DebasePolicy is Ownable, Initializable {
                 upperLagBreakpoints.length > 0,
                 "Can't delete empty breakpoint array"
             );
-            instanceToDelete = upperLagBreakpoints[upperLagBreakpoints
-                .length
-                .sub(1)];
+            instanceToDelete = upperLagBreakpoints[
+                upperLagBreakpoints.length.sub(1)
+            ];
             upperLagBreakpoints.pop();
         } else {
             require(
                 lowerLagBreakpoints.length > 0,
                 "Can't delete empty breakpoint array"
             );
-            instanceToDelete = lowerLagBreakpoints[lowerLagBreakpoints
-                .length
-                .sub(1)];
+            instanceToDelete = lowerLagBreakpoints[
+                lowerLagBreakpoints.length.sub(1)
+            ];
             lowerLagBreakpoints.pop();
         }
         emit LogDeleteBreakpoint(
@@ -740,13 +750,11 @@ contract DebasePolicy is Ownable, Initializable {
         view
         returns (bool)
     {
-        uint256 upperThreshold = targetRate.mul(upperDeviationThreshold).div(
-            10**DECIMALS
-        );
+        uint256 upperThreshold =
+            targetRate.mul(upperDeviationThreshold).div(10**DECIMALS);
 
-        uint256 lowerThreshold = targetRate.mul(lowerDeviationThreshold).div(
-            10**DECIMALS
-        );
+        uint256 lowerThreshold =
+            targetRate.mul(lowerDeviationThreshold).div(10**DECIMALS);
 
         return
             (rate >= targetRate && rate.sub(targetRate) < upperThreshold) ||
