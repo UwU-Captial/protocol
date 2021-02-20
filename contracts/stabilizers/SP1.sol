@@ -22,6 +22,8 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "../Debase.sol";
+import "../DebasePolicy.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract LPTokenWrapper {
@@ -66,7 +68,6 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     event LogSetBlockDuration(uint256 duration_);
     event LogSetPoolEnabled(bool poolEnabled_);
     event LogStartNewDistribtionCycle(
-        uint256 poolShareAdded_,
         uint256 amount_,
         uint256 currentRewardRate_,
         uint256 expansionRewardRate_,
@@ -90,8 +91,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     event LogSetMultiSigPercentage(uint256 multiSigReward_);
     event LogSetMultiSigAddress(address multiSigAddress_);
 
-    IERC20 public debase;
-    address public policy;
+    Debase public debase;
+    DebasePolicy public policy;
     uint256 public blockDuration;
     bool public poolEnabled;
 
@@ -112,7 +113,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     uint256 public cycleEnds;
 
     uint256 public multiSigRewardPercentage;
-    uint256 public multiSigRewardShare;
+    uint256 public multiSigRewardAmount;
     address public multiSigRewardAddress;
 
     //Flag to enable amount of lp that can be staked by a account
@@ -260,8 +261,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         uint256 poolLpLimit_
     ) public {
         setStakeToken(pairToken_);
-        debase = IERC20(debase_);
-        policy = policy_;
+        debase = Debase(debase_);
+        policy = DebasePolicy(policy_);
 
         blockDuration = blockDuration_;
         rewardPercentage = rewardPercentage_;
@@ -275,53 +276,47 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         enablePoolLpLimit = enablePoolLpLimit_;
     }
 
-    function checkStabilizerAndGetReward(
+    function triggerStabilizer(
         int256 supplyDelta_,
         int256 rebaseLag_,
-        uint256 exchangeRate_,
-        uint256 debasePolicyBalance
-    ) external returns (uint256 rewardAmount_) {
+        uint256 exchangeRate_
+    ) external {
         require(
-            msg.sender == policy,
+            msg.sender == address(policy),
             "Only debase policy contract can call this"
         );
 
-        if (multiSigRewardShare != 0) {
-            debase.safeTransfer(
+        if (multiSigRewardAmount != 0) {
+            debase.transfer(
                 multiSigRewardAddress,
-                debase.totalSupply().mul(multiSigRewardShare).div(10**18)
+                debase.gonsToAmount(multiSigRewardAmount)
             );
-            multiSigRewardShare = 0;
+            multiSigRewardAmount = 0;
         }
 
         if (block.number >= cycleEnds) {
             if (supplyDelta_ >= 0) {
                 if (rewardShare != 0) {
                     uint256 balanceLost = rewardShare.sub(rewardPerTokenMax());
-                    debase.safeTransfer(
-                        policy,
-                        debase.totalSupply().mul(balanceLost).div(10**18)
+                    debase.transfer(
+                        address(policy),
+                        debase.gonsToAmount(balanceLost)
                     );
                     rewardShare = 0;
                 }
 
                 uint256 rewardAmount =
-                    debasePolicyBalance.mul(rewardPercentage).div(10**18);
+                    debase.totalSupply().mul(rewardPercentage).div(10**18);
 
-                uint256 multiSigRewardClaim =
-                    rewardAmount.mul(multiSigRewardPercentage).div(10**18);
-
-                multiSigRewardShare = multiSigRewardClaim.mul(10**18).div(
-                    debase.totalSupply()
-                );
+                multiSigRewardAmount = rewardAmount
+                    .mul(multiSigRewardPercentage)
+                    .div(10**18);
 
                 uint256 totalRewardAmount =
-                    multiSigRewardClaim.add(rewardAmount);
+                    multiSigRewardAmount.add(rewardAmount);
 
-                if (debasePolicyBalance >= totalRewardAmount) {
-                    startNewDistribtionCycle(supplyDelta_, rewardAmount);
-                    return totalRewardAmount;
-                }
+                policy.claimFromFund(totalRewardAmount);
+                startNewDistribtionCycle(supplyDelta_, rewardAmount);
             }
         } else {
             if (block.number > periodFinish && supplyDelta_ >= 0) {
@@ -336,14 +331,13 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
                 pauseRewards();
             }
         }
-        return 0;
     }
 
     /**
      * @notice Function allows for emergency withdrawal of all reward tokens back into stabilizer fund
      */
     function emergencyWithdraw() external onlyOwner {
-        debase.safeTransfer(policy, debase.balanceOf(address(this)));
+        debase.transfer(address(policy), debase.balanceOf(address(this)));
         emit LogEmergencyWithdraw(block.number);
     }
 
@@ -445,12 +439,10 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         if (reward > 0) {
             rewards[msg.sender] = 0;
 
-            uint256 rewardToClaim =
-                debase.totalSupply().mul(reward).div(10**18);
+            uint256 amountToClaim = debase.gonsToAmount(reward);
+            debase.transfer(msg.sender, amountToClaim);
 
-            debase.safeTransfer(msg.sender, rewardToClaim);
-
-            emit LogRewardPaid(msg.sender, rewardToClaim);
+            emit LogRewardPaid(msg.sender, amountToClaim);
             rewardDistributed = rewardDistributed.add(reward);
         }
     }
@@ -487,12 +479,10 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             "Rewards: rewards too large, would lock"
         );
 
-        rewardShare = amount.mul(10**18).div(debase.totalSupply());
-
         periodFinish = block.number.add(blockDuration);
         rewardPerTokenStoredMax = 0;
         cycleEnds = periodFinish;
-        expansionRewardRate = rewardShare.div(blockDuration);
+        expansionRewardRate = amount.div(blockDuration);
         stabilityRewardRate = expansionRewardRate
             .mul(stabilityRewardRatePercentage)
             .div(10**18);
@@ -506,7 +496,6 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         lastUpdateBlock = block.number;
 
         emit LogStartNewDistribtionCycle(
-            rewardShare,
             amount,
             rewardRate,
             expansionRewardRate,

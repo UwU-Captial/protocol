@@ -43,11 +43,11 @@ interface DebaseI {
 interface StabilizerI {
     function owner() external returns (address);
 
-    function checkStabilizerAndGetReward(
+    function triggerStabilizer(
         int256 supplyDelta_,
         int256 rebaseLag_,
         uint256 exchangeRate_
-    ) external returns (uint256 rewardAmount_);
+    ) external;
 }
 
 /**
@@ -238,7 +238,7 @@ contract DebasePolicy is Ownable, Initializable {
         upperDeviationThreshold = 5 * 10**(DECIMALS - 2);
         lowerDeviationThreshold = 5 * 10**(DECIMALS - 2);
 
-        useDefaultRebaseLag = false;
+        useDefaultRebaseLag = true;
         defaultPositiveRebaseLag = 15;
         defaultNegativeRebaseLag = 15;
 
@@ -255,11 +255,6 @@ contract DebasePolicy is Ownable, Initializable {
     function addNewStabilizerPool(address pool_) external onlyOwner {
         StabilizerPool memory instance =
             StabilizerPool(false, StabilizerI(pool_));
-
-        require(
-            instance.pool.owner() == owner(),
-            "Must have the same owner as policy contract"
-        );
 
         stabilizerPools.push(instance);
         emit LogAddNewStabilizerPool(instance.pool);
@@ -359,14 +354,14 @@ contract DebasePolicy is Ownable, Initializable {
             supplyDelta = (MAX_SUPPLY.sub(debase.totalSupply())).toInt256Safe();
         }
 
-        checkStabilizers(supplyDelta, rebaseLag, exchangeRate);
+        triggerStabilizers(supplyDelta, rebaseLag, exchangeRate);
 
         uint256 supplyAfterRebase = debase.rebase(epoch, supplyDelta);
         assert(supplyAfterRebase <= MAX_SUPPLY);
         emit LogRebase(epoch, exchangeRate, supplyDelta, rebaseLag, now);
     }
 
-    function checkStabilizers(
+    function triggerStabilizers(
         int256 supplyDelta_,
         int256 rebaseLag_,
         uint256 exchangeRate_
@@ -378,7 +373,7 @@ contract DebasePolicy is Ownable, Initializable {
         ) {
             StabilizerPool memory instance = stabilizerPools[index];
             if (instance.enabled) {
-                instance.pool.checkStabilizerAndGetReward(
+                instance.pool.triggerStabilizer(
                     supplyDelta_,
                     rebaseLag_,
                     exchangeRate_
@@ -386,6 +381,8 @@ contract DebasePolicy is Ownable, Initializable {
             }
         }
     }
+
+    function claimFromFund(uint256 amount) external {}
 
     /**
      * @notice Returns an apporiate rebase lag based either upon the inputed supply delta. The lag is either chose from an array of negative or positive

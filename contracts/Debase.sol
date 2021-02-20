@@ -30,7 +30,7 @@ contract Debase is ERC20, Initializable {
     uint256 constant MAX_UINT256 = ~uint256(0);
     uint256 constant INITIAL_FRAGMENTS_SUPPLY = 1000000 * 10**DECIMALS;
 
-    // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that _gonsPerFragment is an integer.
+    // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
     uint256 constant TOTAL_GONS =
         MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
@@ -39,12 +39,12 @@ contract Debase is ERC20, Initializable {
     uint256 constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
 
     uint256 private _totalSupply;
-    uint256 _gonsPerFragment;
-    mapping(address => uint256) _gonBalances;
+    uint256 gonsPerFragment;
+    mapping(address => uint256) gonsBalance;
 
     // This is denominated in Fragments, because the gons-fragments conversion might change before
     // it's fully paid.
-    mapping(address => mapping(address => uint256)) _allowedFragments;
+    mapping(address => mapping(address => uint256)) allowedFragments;
 
     constructor() public ERC20("Debase", "DEBASE") {}
 
@@ -91,7 +91,7 @@ contract Debase is ERC20, Initializable {
         DropVariables memory instance;
 
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
-        _gonsPerFragment = TOTAL_GONS.div(_totalSupply);
+        gonsPerFragment = TOTAL_GONS.div(_totalSupply);
 
         debasePolicy = debasePolicy_;
 
@@ -99,33 +99,33 @@ contract Debase is ERC20, Initializable {
             100
         );
         instance.debaseDaiPoolGons = instance.debaseDaiPoolVal.mul(
-            _gonsPerFragment
+            gonsPerFragment
         );
 
         instance.debaseDaiLpPoolVal = _totalSupply
             .mul(debaseDaiLpTotalRatio_)
             .div(100);
         instance.debaseDaiLpPoolGons = instance.debaseDaiLpPoolVal.mul(
-            _gonsPerFragment
+            gonsPerFragment
         );
 
         instance.airDropperVal = _totalSupply.mul(airDropperTotalRatio_).div(
             100
         );
 
-        instance.airDropperGons = instance.airDropperVal.mul(_gonsPerFragment);
+        instance.airDropperGons = instance.airDropperVal.mul(gonsPerFragment);
 
         instance.debasePolicyPoolVal = _totalSupply
             .mul(debasePolicyTotalRatio_)
             .div(100);
         instance.debasePolicyGons = instance.debasePolicyPoolVal.mul(
-            _gonsPerFragment
+            gonsPerFragment
         );
 
-        _gonBalances[debaseDaiPool] = instance.debaseDaiPoolGons;
-        _gonBalances[debaseDaiLpPool] = instance.debaseDaiLpPoolGons;
-        _gonBalances[airDropper] = instance.airDropperGons;
-        _gonBalances[debasePolicy] = instance.debasePolicyGons;
+        gonsBalance[debaseDaiPool] = instance.debaseDaiPoolGons;
+        gonsBalance[debaseDaiLpPool] = instance.debaseDaiLpPoolGons;
+        gonsBalance[airDropper] = instance.airDropperGons;
+        gonsBalance[debasePolicy] = instance.debasePolicyGons;
 
         emit Transfer(address(0x0), debaseDaiPool, instance.debaseDaiPoolVal);
         emit Transfer(
@@ -162,18 +162,7 @@ contract Debase is ERC20, Initializable {
             _totalSupply = MAX_SUPPLY;
         }
 
-        _gonsPerFragment = TOTAL_GONS.div(_totalSupply);
-
-        // From this point forward, _gonsPerFragment is taken as the source of truth.
-        // We recalculate a new _totalSupply to be in agreement with the _gonsPerFragment
-        // conversion rate.
-        // This means our applied supplyDelta can deviate from the requested supplyDelta,
-        // but this deviation is guaranteed to be < (_totalSupply^2)/(TOTAL_GONS - _totalSupply).
-        //
-        // In the case of _totalSupply <= MAX_UINT128 (our current supply cap), this
-        // deviation is guaranteed to be < 1, so we can omit this step. If the supply cap is
-        // ever increased, it must be re-included.
-        // _totalSupply = TOTAL_GONS.div(_gonsPerFragment)
+        gonsPerFragment = TOTAL_GONS.div(_totalSupply);
 
         emit LogRebase(epoch, _totalSupply);
         return _totalSupply;
@@ -191,7 +180,15 @@ contract Debase is ERC20, Initializable {
      * @return The balance of the specified address.
      */
     function balanceOf(address who) public view override returns (uint256) {
-        return _gonBalances[who].div(_gonsPerFragment);
+        return gonsBalance[who].div(gonsPerFragment);
+    }
+
+    /**
+     * @param amount The amount of gons to convert.
+     * @return The balance of the specified address.
+     */
+    function gonsToAmount(uint256 amount) public view returns (uint256) {
+        return amount.div(gonsPerFragment);
     }
 
     /**
@@ -206,9 +203,9 @@ contract Debase is ERC20, Initializable {
         validRecipient(to)
         returns (bool)
     {
-        uint256 gonValue = value.mul(_gonsPerFragment);
-        _gonBalances[msg.sender] = _gonBalances[msg.sender].sub(gonValue);
-        _gonBalances[to] = _gonBalances[to].add(gonValue);
+        uint256 gonValue = value.mul(gonsPerFragment);
+        gonsBalance[msg.sender] = gonsBalance[msg.sender].sub(gonValue);
+        gonsBalance[to] = gonsBalance[to].add(gonValue);
         emit Transfer(msg.sender, to, value);
         return true;
     }
@@ -225,7 +222,7 @@ contract Debase is ERC20, Initializable {
         override
         returns (uint256)
     {
-        return _allowedFragments[owner_][spender];
+        return allowedFragments[owner_][spender];
     }
 
     /**
@@ -239,14 +236,12 @@ contract Debase is ERC20, Initializable {
         address to,
         uint256 value
     ) public override validRecipient(to) returns (bool) {
-        _allowedFragments[from][msg.sender] = _allowedFragments[from][
-            msg.sender
-        ]
+        allowedFragments[from][msg.sender] = allowedFragments[from][msg.sender]
             .sub(value);
 
-        uint256 gonValue = value.mul(_gonsPerFragment);
-        _gonBalances[from] = _gonBalances[from].sub(gonValue);
-        _gonBalances[to] = _gonBalances[to].add(gonValue);
+        uint256 gonValue = value.mul(gonsPerFragment);
+        gonsBalance[from] = gonsBalance[from].sub(gonValue);
+        gonsBalance[to] = gonsBalance[to].add(gonValue);
         emit Transfer(from, to, value);
 
         return true;
@@ -268,7 +263,7 @@ contract Debase is ERC20, Initializable {
         override
         returns (bool)
     {
-        _allowedFragments[msg.sender][spender] = value;
+        allowedFragments[msg.sender][spender] = value;
         emit Approval(msg.sender, spender, value);
         return true;
     }
@@ -285,14 +280,14 @@ contract Debase is ERC20, Initializable {
         override
         returns (bool)
     {
-        _allowedFragments[msg.sender][spender] = _allowedFragments[msg.sender][
+        allowedFragments[msg.sender][spender] = allowedFragments[msg.sender][
             spender
         ]
             .add(addedValue);
         emit Approval(
             msg.sender,
             spender,
-            _allowedFragments[msg.sender][spender]
+            allowedFragments[msg.sender][spender]
         );
         return true;
     }
@@ -308,18 +303,18 @@ contract Debase is ERC20, Initializable {
         override
         returns (bool)
     {
-        uint256 oldValue = _allowedFragments[msg.sender][spender];
+        uint256 oldValue = allowedFragments[msg.sender][spender];
         if (subtractedValue >= oldValue) {
-            _allowedFragments[msg.sender][spender] = 0;
+            allowedFragments[msg.sender][spender] = 0;
         } else {
-            _allowedFragments[msg.sender][spender] = oldValue.sub(
+            allowedFragments[msg.sender][spender] = oldValue.sub(
                 subtractedValue
             );
         }
         emit Approval(
             msg.sender,
             spender,
-            _allowedFragments[msg.sender][spender]
+            allowedFragments[msg.sender][spender]
         );
         return true;
     }
