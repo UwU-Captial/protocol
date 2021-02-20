@@ -46,8 +46,7 @@ interface StabilizerI {
     function checkStabilizerAndGetReward(
         int256 supplyDelta_,
         int256 rebaseLag_,
-        uint256 exchangeRate_,
-        uint256 debasePolicyBalance
+        uint256 exchangeRate_
     ) external returns (uint256 rewardAmount_);
 }
 
@@ -240,8 +239,8 @@ contract DebasePolicy is Ownable, Initializable {
         lowerDeviationThreshold = 5 * 10**(DECIMALS - 2);
 
         useDefaultRebaseLag = false;
-        defaultPositiveRebaseLag = 30;
-        defaultNegativeRebaseLag = 30;
+        defaultPositiveRebaseLag = 15;
+        defaultNegativeRebaseLag = 15;
 
         minRebaseTimeIntervalSec = 24 hours;
         lastRebaseTimestampSec = 0;
@@ -379,22 +378,11 @@ contract DebasePolicy is Ownable, Initializable {
         ) {
             StabilizerPool memory instance = stabilizerPools[index];
             if (instance.enabled) {
-                uint256 rewardToTransfer =
-                    instance.pool.checkStabilizerAndGetReward(
-                        supplyDelta_,
-                        rebaseLag_,
-                        exchangeRate_,
-                        debase.balanceOf(address(this))
-                    );
-
-                if (rewardToTransfer != 0) {
-                    debase.transfer(address(instance.pool), rewardToTransfer);
-                    emit LogRewardSentToStabilizer(
-                        index,
-                        instance.pool,
-                        rewardToTransfer
-                    );
-                }
+                instance.pool.checkStabilizerAndGetReward(
+                    supplyDelta_,
+                    rebaseLag_,
+                    exchangeRate_
+                );
             }
         }
     }
