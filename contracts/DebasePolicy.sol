@@ -23,32 +23,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./lib/SafeMathInt.sol";
 import "./lib/UInt256Lib.sol";
-
-interface IOracle {
-    function getData() external returns (uint256, bool);
-}
-
-interface DebaseI {
-    function totalSupply() external view returns (uint256);
-
-    function balanceOf(address who) external returns (uint256);
-
-    function rebase(uint256 epoch, int256 supplyDelta)
-        external
-        returns (uint256);
-
-    function transfer(address to, uint256 value) external returns (bool);
-}
-
-interface StabilizerI {
-    function owner() external returns (address);
-
-    function triggerStabilizer(
-        int256 supplyDelta_,
-        int256 rebaseLag_,
-        uint256 exchangeRate_
-    ) external;
-}
+import "./interfaces/IOracle.sol";
+import "./interfaces/IDebase.sol";
+import "./interfaces/IStabilizer.sol";
 
 /**
  * @title Debase Monetary Supply Policy
@@ -123,15 +100,15 @@ contract DebasePolicy is Ownable, Initializable {
 
     event LogSetPriceTargetRate(uint256 setPriceTargetRate_);
 
-    event LogDeleteStabilizerPool(StabilizerI pool_);
+    event LogDeleteStabilizerPool(IStabilizer pool_);
 
-    event LogAddNewStabilizerPool(StabilizerI pool_);
+    event LogAddNewStabilizerPool(IStabilizer pool_);
 
     event LogSetStabilizerPoolEnabled(uint256 index_, bool enabled_);
 
     event LogRewardSentToStabilizer(
         uint256 index,
-        StabilizerI poolI,
+        IStabilizer poolI,
         uint256 transferAmount
     );
 
@@ -144,11 +121,11 @@ contract DebasePolicy is Ownable, Initializable {
 
     struct StabilizerPool {
         bool enabled;
-        StabilizerI pool;
+        IStabilizer pool;
     }
 
     // Address of the debase token
-    DebaseI public debase;
+    IDebase public debase;
 
     // Market oracle provides the token/USD exchange rate as an 18 decimal fixed point number.
     // (eg) An oracle value of 1.5e18 it would mean 1 Ample is trading for $1.50.
@@ -232,7 +209,7 @@ contract DebasePolicy is Ownable, Initializable {
         initializer
         onlyOwner
     {
-        debase = DebaseI(debase_);
+        debase = IDebase(debase_);
         orchestrator = orchestrator_;
 
         upperDeviationThreshold = 5 * 10**(DECIMALS - 2);
@@ -254,7 +231,7 @@ contract DebasePolicy is Ownable, Initializable {
 
     function addNewStabilizerPool(address pool_) external onlyOwner {
         StabilizerPool memory instance =
-            StabilizerPool(false, StabilizerI(pool_));
+            StabilizerPool(false, IStabilizer(pool_));
 
         stabilizerPools.push(instance);
         emit LogAddNewStabilizerPool(instance.pool);

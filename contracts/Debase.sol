@@ -27,24 +27,24 @@ contract Debase is ERC20, Initializable {
     }
 
     uint256 private constant DECIMALS = 18;
-    uint256 constant MAX_UINT256 = ~uint256(0);
-    uint256 constant INITIAL_FRAGMENTS_SUPPLY = 1000000 * 10**DECIMALS;
+    uint256 public constant MAX_UINT256 = ~uint256(0);
+    uint256 public constant INITIAL_FRAGMENTS_SUPPLY = 1000000 * 10**DECIMALS;
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
-    uint256 constant TOTAL_GONS =
+    uint256 public constant TOTAL_GONS =
         MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
 
     // MAX_SUPPLY = maximum integer < (sqrt(4*TOTAL_GONS + 1) - 1) / 2
-    uint256 constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
+    uint256 public constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
 
     uint256 private _totalSupply;
-    uint256 gonsPerFragment;
-    mapping(address => uint256) gonsBalance;
+    uint256 public gonsPerFragment;
+    mapping(address => uint256) public gonsBalance;
 
     // This is denominated in Fragments, because the gons-fragments conversion might change before
     // it's fully paid.
-    mapping(address => mapping(address => uint256)) allowedFragments;
+    mapping(address => mapping(address => uint256)) public allowedFragments;
 
     constructor() public ERC20("Debase", "DEBASE") {}
 

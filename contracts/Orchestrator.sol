@@ -4,34 +4,10 @@ pragma solidity >=0.6.6;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-interface PoolI {
-    function rewardDistributed() external returns (uint256);
-
-    function startPool() external;
-
-    function periodFinish() external returns (uint256);
-}
-
-interface DebaseI {
-    function totalSupply() external view returns (uint256);
-
-    function balanceOf(address who) external returns (uint256);
-
-    function rebase(uint256 epoch, int256 supplyDelta)
-        external
-        returns (uint256);
-
-    function transfer(address to, uint256 value) external returns (bool);
-}
-
-interface DebasePolicyI {
-    function rebase() external;
-}
-
-interface UniV2PairI {
-    function sync() external;
-}
+import "./interfaces/IDebase.sol";
+import "./interfaces/IDebasePolicy.sol";
+import "./interfaces/IPool.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
 /**
  * @title Orchestrator
@@ -42,28 +18,26 @@ contract Orchestrator is Ownable, Initializable {
     using SafeMath for uint256;
 
     // Stable ordering is not guaranteed.
-    DebaseI public debase;
-    DebasePolicyI public debasePolicy;
+    IDebase public debase;
+    IDebasePolicy public debasePolicy;
 
-    PoolI public debaseDaiPool;
-    PoolI public debaseDaiLpPool;
+    IPool public debaseDaiPool;
+    IPool public debaseDaiLpPool;
 
-    PoolI public degovDaiLpPool;
+    IPool public degovDaiLpPool;
     bool public rebaseStarted;
     uint256 public maximumRebaseTime;
     uint256 public rebaseRequiredSupply;
 
     event LogRebaseStarted(uint256 timeStarted);
     event LogAddNewUniPair(address token1, address token2);
-    event LogDeleteUniPair(bool enabled, address uniPair);
-    event LogSetUniPairEnabled(uint256 index, bool enabled);
 
     uint256 constant SYNC_GAS = 50000;
     address constant uniFactory = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
 
     struct UniPair {
         bool enabled;
-        UniV2PairI pair;
+        IUniswapV2Pair pair;
     }
 
     UniPair[] public uniSyncs;
@@ -80,7 +54,7 @@ contract Orchestrator is Ownable, Initializable {
     function genUniAddr(address left, address right)
         internal
         pure
-        returns (UniV2PairI)
+        returns (IUniswapV2Pair)
     {
         address first = left < right ? left : right;
         address second = left < right ? right : left;
@@ -97,7 +71,7 @@ contract Orchestrator is Ownable, Initializable {
                     )
                 )
             );
-        return UniV2PairI(pair);
+        return IUniswapV2Pair(pair);
     }
 
     function initialize(
@@ -109,12 +83,12 @@ contract Orchestrator is Ownable, Initializable {
         uint256 rebaseRequiredSupply_,
         uint256 oracleStartTimeOffset
     ) external initializer {
-        debase = DebaseI(debase_);
-        debasePolicy = DebasePolicyI(debasePolicy_);
+        debase = IDebase(debase_);
+        debasePolicy = IDebasePolicy(debasePolicy_);
 
-        debaseDaiPool = PoolI(debaseDaiPool_);
-        debaseDaiLpPool = PoolI(debaseDaiLpPool_);
-        degovDaiLpPool = PoolI(degovDaiLpPool_);
+        debaseDaiPool = IPool(debaseDaiPool_);
+        debaseDaiLpPool = IPool(debaseDaiLpPool_);
+        degovDaiLpPool = IPool(degovDaiLpPool_);
 
         maximumRebaseTime = block.timestamp + oracleStartTimeOffset;
         rebaseStarted = false;
@@ -125,36 +99,6 @@ contract Orchestrator is Ownable, Initializable {
         uniSyncs.push(UniPair(true, genUniAddr(token1, token2)));
 
         emit LogAddNewUniPair(token1, token2);
-    }
-
-    function deleteUniPair(uint256 index)
-        external
-        onlyOwner
-        indexInBounds(index)
-    {
-        UniPair memory instanceToDelete = uniSyncs[index];
-
-        if (index < uniSyncs.length.sub(1)) {
-            uniSyncs[index] = uniSyncs[uniSyncs.length.sub(1)];
-        }
-        emit LogDeleteUniPair(
-            instanceToDelete.enabled,
-            address(instanceToDelete.pair)
-        );
-
-        uniSyncs.pop();
-        delete instanceToDelete;
-    }
-
-    function setUniPairEnabled(uint256 index, bool enabled)
-        external
-        onlyOwner
-        indexInBounds(index)
-    {
-        UniPair storage instance = uniSyncs[index];
-        instance.enabled = enabled;
-
-        emit LogSetUniPairEnabled(index, enabled);
     }
 
     /**
