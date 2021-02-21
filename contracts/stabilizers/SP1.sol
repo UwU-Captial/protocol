@@ -22,9 +22,10 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../Debase.sol";
-import "../DebasePolicy.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+import "../interfaces/IDebase.sol";
+import "../interfaces/IDebasePolicy.sol";
 
 contract LPTokenWrapper {
     using SafeMath for uint256;
@@ -91,8 +92,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     event LogSetMultiSigPercentage(uint256 multiSigReward_);
     event LogSetMultiSigAddress(address multiSigAddress_);
 
-    Debase public debase;
-    DebasePolicy public policy;
+    IDebase public debase;
+    IDebasePolicy public policy;
     uint256 public blockDuration;
     bool public poolEnabled;
 
@@ -261,8 +262,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         uint256 poolLpLimit_
     ) public {
         setStakeToken(pairToken_);
-        debase = Debase(debase_);
-        policy = DebasePolicy(policy_);
+        debase = IDebase(debase_);
+        policy = IDebasePolicy(policy_);
 
         blockDuration = blockDuration_;
         rewardPercentage = rewardPercentage_;
@@ -277,6 +278,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     }
 
     function triggerStabilizer(
+        uint256 index,
         int256 supplyDelta_,
         int256 rebaseLag_,
         uint256 exchangeRate_
@@ -315,8 +317,9 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
                 uint256 totalRewardAmount =
                     multiSigRewardAmount.add(rewardAmount);
 
-                policy.claimFromFund(totalRewardAmount);
-                startNewDistribtionCycle(supplyDelta_, rewardAmount);
+                if (policy.stabilizerClaimFromFund(index, totalRewardAmount)) {
+                    startNewDistribtionCycle(supplyDelta_, rewardAmount);
+                }
             }
         } else {
             if (block.number > periodFinish && supplyDelta_ >= 0) {

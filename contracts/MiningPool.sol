@@ -23,6 +23,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract LPTokenWrapper {
     using SafeMath for uint256;
@@ -58,7 +59,7 @@ contract LPTokenWrapper {
     }
 }
 
-contract MiningPool is Ownable, Initializable, LPTokenWrapper {
+contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
     using Address for address;
 
     IERC20 public rewardToken;
@@ -183,6 +184,7 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper {
     function stake(uint256 amount)
         public
         override
+        nonReentrant
         updateReward(msg.sender)
         checkHalve
         enabled
@@ -199,6 +201,7 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper {
     function withdraw(uint256 amount)
         public
         override
+        nonReentrant
         updateReward(msg.sender)
         checkHalve
     {
@@ -212,7 +215,13 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper {
         getReward();
     }
 
-    function getReward() public updateReward(msg.sender) checkHalve enabled {
+    function getReward()
+        public
+        nonReentrant
+        updateReward(msg.sender)
+        checkHalve
+        enabled
+    {
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
