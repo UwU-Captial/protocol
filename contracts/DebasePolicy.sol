@@ -199,36 +199,6 @@ contract DebasePolicy is Ownable, Initializable {
         _;
     }
 
-    /**
-     * @notice Initializes the debase policy with addresses of the debase token and the oracle deployer. Along with inital rebasing parameters
-     * @param debase_ Address of the debase token
-     * @param orchestrator_ Address of the protocol orchestrator
-     */
-    function initialize(address debase_, address orchestrator_)
-        external
-        initializer
-        onlyOwner
-    {
-        debase = IDebase(debase_);
-        orchestrator = orchestrator_;
-
-        upperDeviationThreshold = 5 * 10**(DECIMALS - 2);
-        lowerDeviationThreshold = 5 * 10**(DECIMALS - 2);
-
-        useDefaultRebaseLag = true;
-        defaultPositiveRebaseLag = 15;
-        defaultNegativeRebaseLag = 15;
-
-        minRebaseTimeIntervalSec = 24 hours;
-        lastRebaseTimestampSec = 0;
-        rebaseWindowOffsetSec = 72000;
-        rebaseWindowLengthSec = 15 minutes;
-
-        priceTargetRate = 10**DECIMALS;
-
-        epoch = 0;
-    }
-
     function addNewStabilizerPool(address pool_) external onlyOwner {
         StabilizerPool memory instance =
             StabilizerPool(false, IStabilizer(pool_));
@@ -283,6 +253,36 @@ contract DebasePolicy is Ownable, Initializable {
     function setOracle(address oracle_) external onlyOwner {
         oracle = IOracle(oracle_);
         emit LogSetOracle(oracle_);
+    }
+
+    /**
+     * @notice Initializes the debase policy with addresses of the debase token and the oracle deployer. Along with inital rebasing parameters
+     * @param debase_ Address of the debase token
+     * @param orchestrator_ Address of the protocol orchestrator
+     */
+    function initialize(address debase_, address orchestrator_)
+        external
+        initializer
+        onlyOwner
+    {
+        debase = IDebase(debase_);
+        orchestrator = orchestrator_;
+
+        upperDeviationThreshold = 5 * 10**(DECIMALS - 2);
+        lowerDeviationThreshold = 5 * 10**(DECIMALS - 2);
+
+        useDefaultRebaseLag = true;
+        defaultPositiveRebaseLag = 15;
+        defaultNegativeRebaseLag = 15;
+
+        minRebaseTimeIntervalSec = 24 hours;
+        lastRebaseTimestampSec = 0;
+        rebaseWindowOffsetSec = 72000;
+        rebaseWindowLengthSec = 20 minutes;
+
+        priceTargetRate = 10**DECIMALS;
+
+        epoch = 0;
     }
 
     /**
@@ -351,6 +351,7 @@ contract DebasePolicy is Ownable, Initializable {
             StabilizerPool memory instance = stabilizerPools[index];
             if (instance.enabled) {
                 instance.pool.triggerStabilizer(
+                    index,
                     supplyDelta_,
                     rebaseLag_,
                     exchangeRate_
@@ -359,7 +360,24 @@ contract DebasePolicy is Ownable, Initializable {
         }
     }
 
-    function claimFromFund(uint256 amount) external {}
+    function stabilizerClaimFromFund(uint256 index, uint256 amount)
+        external
+        indexInBounds(index)
+        returns (bool)
+    {
+        StabilizerPool memory instance = stabilizerPools[index];
+        uint256 funderBalance = debase.balanceOf(address(this));
+
+        if (
+            msg.sender == address(instance.pool) &&
+            instance.enabled &&
+            amount <= funderBalance
+        ) {
+            debase.transfer(msg.sender, amount);
+            return true;
+        }
+        return false;
+    }
 
     /**
      * @notice Returns an apporiate rebase lag based either upon the inputed supply delta. The lag is either chose from an array of negative or positive
