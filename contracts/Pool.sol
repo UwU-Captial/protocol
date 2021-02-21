@@ -22,24 +22,7 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
-
-abstract contract IRewardDistributionRecipient {
-    address public rewardDistribution;
-
-    function notifyRewardAmount(uint256 reward) internal virtual;
-
-    modifier onlyRewardDistribution() {
-        require(
-            msg.sender == rewardDistribution,
-            "Caller is not reward distribution"
-        );
-        _;
-    }
-
-    function setRewardDistribution(address _rewardDistribution) external {
-        rewardDistribution = _rewardDistribution;
-    }
-}
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LPTokenWrapper {
     using SafeMath for uint256;
@@ -75,19 +58,15 @@ contract LPTokenWrapper {
     }
 }
 
-contract Pool is Initializable, LPTokenWrapper, IRewardDistributionRecipient {
+contract Pool is Ownable, Initializable, LPTokenWrapper {
     using Address for address;
 
-    string public poolName;
     IERC20 public rewardToken;
-    address public orchestrator;
     uint256 public duration;
-    bool public manualStartPool;
+    bool public poolEnabled;
 
     uint256 public initReward;
     uint256 public maxReward;
-    bool public poolStarted;
-    uint256 public startTime;
     uint256 public periodFinish;
     uint256 public rewardRate;
     uint256 public lastUpdateTime;
@@ -103,7 +82,12 @@ contract Pool is Initializable, LPTokenWrapper, IRewardDistributionRecipient {
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
-    event ManualPoolStarted(uint256 startedAt);
+    event PoolEnabled(uint256 startedAt);
+
+    modifier enabled() {
+        require(poolEnabled, "Pool isn't enabled");
+        _;
+    }
 
     modifier checkHalve() {
         if (block.timestamp >= periodFinish) {
@@ -112,18 +96,6 @@ contract Pool is Initializable, LPTokenWrapper, IRewardDistributionRecipient {
             rewardRate = initReward.div(duration);
             periodFinish = block.timestamp.add(duration);
             emit RewardAdded(initReward);
-        }
-        _;
-    }
-
-    modifier checkStart() {
-        if (manualStartPool) {
-            require(poolStarted, "Orchestrator hasn't started pool");
-        } else {
-            require(
-                block.timestamp > startTime,
-                "Can't use pool before start time"
-            );
         }
         _;
     }
@@ -163,43 +135,27 @@ contract Pool is Initializable, LPTokenWrapper, IRewardDistributionRecipient {
     }
 
     function initialize(
-        string memory poolName_,
         address rewardToken_,
         address pairToken_,
         bool isUniPair,
-        address orchestrator_,
-        uint256 duration_,
-        bool manualStartPool_,
-        uint256 oracleStartTimeOffset
+        uint256 duration_
     ) public initializer {
-        poolName = poolName_;
         if (isUniPair) {
             setStakeToken(genUniAddr(rewardToken_, pairToken_));
         } else {
             setStakeToken(pairToken_);
         }
         rewardToken = IERC20(rewardToken_);
-        orchestrator = orchestrator_;
 
         maxReward = rewardToken.balanceOf(address(this));
         duration = duration_;
-
-        manualStartPool = manualStartPool_;
-
-        if (!manualStartPool) {
-            startTime = block.timestamp + oracleStartTimeOffset;
-            notifyRewardAmount(maxReward.mul(50).div(100));
-        }
     }
 
     function startPool() external {
-        require(msg.sender == address(orchestrator));
-        require(!poolStarted, "Pool can only be started once");
+        require(!poolEnabled, "Pool can only be started once");
 
-        poolStarted = true;
-        startTime = block.timestamp + 1;
-        notifyRewardAmount(maxReward.mul(50).div(100));
-        emit ManualPoolStarted(startTime);
+        poolEnabled = true;
+        startNewDistribtionCycle(maxReward.mul(50).div(100));
     }
 
     function lastTimeRewardApplicable() public view returns (uint256) {
@@ -234,7 +190,7 @@ contract Pool is Initializable, LPTokenWrapper, IRewardDistributionRecipient {
         override
         updateReward(msg.sender)
         checkHalve
-        checkStart
+        enabled
     {
         require(
             !address(msg.sender).isContract(),
@@ -250,7 +206,6 @@ contract Pool is Initializable, LPTokenWrapper, IRewardDistributionRecipient {
         override
         updateReward(msg.sender)
         checkHalve
-        checkStart
     {
         require(amount > 0, "Cannot withdraw 0");
         super.withdraw(amount);
@@ -262,7 +217,7 @@ contract Pool is Initializable, LPTokenWrapper, IRewardDistributionRecipient {
         getReward();
     }
 
-    function getReward() public updateReward(msg.sender) checkHalve checkStart {
+    function getReward() public updateReward(msg.sender) checkHalve enabled {
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
@@ -272,9 +227,8 @@ contract Pool is Initializable, LPTokenWrapper, IRewardDistributionRecipient {
         }
     }
 
-    function notifyRewardAmount(uint256 reward)
+    function startNewDistribtionCycle(uint256 reward)
         internal
-        override
         updateReward(address(0))
     {
         if (block.timestamp >= periodFinish) {
