@@ -24,42 +24,10 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract LPTokenWrapper {
+contract Pool is Ownable, Initializable {
+    using Address for address;
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-
-    IERC20 public y;
-
-    function setStakeToken(address _y) internal {
-        y = IERC20(_y);
-    }
-
-    uint256 private _totalSupply;
-    mapping(address => uint256) private _balances;
-
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
-    }
-
-    function stake(uint256 amount) public virtual {
-        _totalSupply = _totalSupply.add(amount);
-        _balances[msg.sender] = _balances[msg.sender].add(amount);
-        y.safeTransferFrom(msg.sender, address(this), amount);
-    }
-
-    function withdraw(uint256 amount) public virtual {
-        _totalSupply = _totalSupply.sub(amount);
-        _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        y.safeTransfer(msg.sender, amount);
-    }
-}
-
-contract Pool is Ownable, Initializable, LPTokenWrapper {
-    using Address for address;
 
     IERC20 public rewardToken;
     uint256 public duration;
@@ -72,11 +40,13 @@ contract Pool is Ownable, Initializable, LPTokenWrapper {
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     uint256 public rewardDistributed;
+    uint256 private _totalSupply;
 
     address constant uniFactory = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
+    mapping(address => uint256) public balances;
 
     event RewardAdded(uint256 reward);
     event Staked(address indexed user, uint256 amount);
@@ -110,41 +80,12 @@ contract Pool is Ownable, Initializable, LPTokenWrapper {
         _;
     }
 
-    // https://uniswap.org/docs/v2/smart-contract-integration/getting-pair-addresses/
-    function genUniAddr(address left, address right)
-        internal
-        pure
-        returns (address)
-    {
-        address first = left < right ? left : right;
-        address second = left < right ? right : left;
-        address pair =
-            address(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            uniFactory,
-                            keccak256(abi.encodePacked(first, second)),
-                            hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
-                        )
-                    )
-                )
-            );
-        return pair;
-    }
-
     function initialize(
         address rewardToken_,
         address pairToken_,
         bool isUniPair,
         uint256 duration_
     ) public initializer {
-        if (isUniPair) {
-            setStakeToken(genUniAddr(rewardToken_, pairToken_));
-        } else {
-            setStakeToken(pairToken_);
-        }
         rewardToken = IERC20(rewardToken_);
 
         maxReward = rewardToken.balanceOf(address(this));
@@ -176,6 +117,14 @@ contract Pool is Ownable, Initializable, LPTokenWrapper {
             );
     }
 
+    function totalSupply() public view returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) public view returns (uint256) {
+        return balances[account];
+    }
+
     function earned(address account) public view returns (uint256) {
         return
             balanceOf(account)
@@ -184,37 +133,22 @@ contract Pool is Ownable, Initializable, LPTokenWrapper {
                 .add(rewards[account]);
     }
 
-    // stake visibility is public as overriding LPTokenWrapper's stake() function
-    function stake(uint256 amount)
-        public
-        override
+    function stake(address[] calldata users, uint256[] calldata amounts)
+        external
         updateReward(msg.sender)
+        onlyOwner
         checkHalve
-        enabled
     {
         require(
             !address(msg.sender).isContract(),
             "Caller must not be a contract"
         );
-        require(amount > 0, "Cannot stake 0");
-        super.stake(amount);
-        emit Staked(msg.sender, amount);
-    }
+        require(users.length == amounts.length);
 
-    function withdraw(uint256 amount)
-        public
-        override
-        updateReward(msg.sender)
-        checkHalve
-    {
-        require(amount > 0, "Cannot withdraw 0");
-        super.withdraw(amount);
-        emit Withdrawn(msg.sender, amount);
-    }
-
-    function exit() external {
-        withdraw(balanceOf(msg.sender));
-        getReward();
+        for (uint256 index = 0; index < users.length; index = index.add(1)) {
+            _totalSupply = _totalSupply.add(amounts[index]);
+            balances[users[index]] = balances[users[index]].add(amounts[index]);
+        }
     }
 
     function getReward() public updateReward(msg.sender) checkHalve enabled {
