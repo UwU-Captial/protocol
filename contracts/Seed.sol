@@ -13,7 +13,9 @@ contract Seed is Ownable {
     address devWallet;
     IERC20 public UwU;
     IERC20 public BNB;
+
     uint256 priceAtLaunch;
+    uint256 UwUDistribution;
     uint256 tokenExchangeRate;
 
     uint256 BNBDeposited;
@@ -23,13 +25,15 @@ contract Seed is Ownable {
         IERC20 UwU_,
         IERC20 BNB_,
         address devWallet_,
+        uint256 UwUDistribution_,
         uint256 priceAtLaunch_,
         uint256 tokenExchangeRate_
     ) public {
         devWallet = devWallet_;
-
         UwU = UwU_;
         BNB = BNB_;
+
+        UwUDistribution = UwUDistribution_;
         priceAtLaunch = priceAtLaunch_;
         tokenExchangeRate = tokenExchangeRate_;
     }
