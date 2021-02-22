@@ -114,7 +114,7 @@ contract Oracle is Ownable, ExampleOracleSimple {
     address debase;
     address public debasePolicy;
     uint256 constant SCALE = 10**18;
-    address constant uniFactory = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+    address constant uniFactory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
 
     constructor(
         address debase_,

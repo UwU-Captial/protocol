@@ -33,7 +33,7 @@ contract Orchestrator is Ownable, Initializable {
     event LogAddNewUniPair(address token1, address token2);
 
     uint256 constant SYNC_GAS = 50000;
-    address constant uniFactory = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+    address constant uniFactory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
 
     struct UniPair {
         bool enabled;
