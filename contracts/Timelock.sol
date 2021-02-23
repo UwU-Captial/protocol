@@ -41,7 +41,7 @@ contract Timelock is Initializable, Ownable {
     address public pendingAdmin;
 
     // The amount of delay after which a delay can a queued can be executed.
-    uint256 public delay = 1 days;
+    uint256 public delay = 2 days;
     // The the period within which an queued proposal can be executed.
     uint256 public gracePeriod = 7 days;
 
@@ -118,9 +118,8 @@ contract Timelock is Initializable, Ownable {
             "Timelock::queueTransaction: Estimated execution block must satisfy delay."
         );
 
-        bytes32 txHash = keccak256(
-            abi.encode(target, value, signature, data, eta)
-        );
+        bytes32 txHash =
+            keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = true;
 
         emit QueueTransaction(txHash, target, value, signature, data, eta);
@@ -139,9 +138,8 @@ contract Timelock is Initializable, Ownable {
             "Timelock::cancelTransaction: Call must come from admin."
         );
 
-        bytes32 txHash = keccak256(
-            abi.encode(target, value, signature, data, eta)
-        );
+        bytes32 txHash =
+            keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = false;
 
         emit CancelTransaction(txHash, target, value, signature, data, eta);
@@ -159,9 +157,8 @@ contract Timelock is Initializable, Ownable {
             "Timelock::executeTransaction: Call must come from admin."
         );
 
-        bytes32 txHash = keccak256(
-            abi.encode(target, value, signature, data, eta)
-        );
+        bytes32 txHash =
+            keccak256(abi.encode(target, value, signature, data, eta));
         require(
             queuedTransactions[txHash],
             "Timelock::executeTransaction: Transaction hasn't been queued."
@@ -189,9 +186,8 @@ contract Timelock is Initializable, Ownable {
         }
 
         // solium-disable-next-line security/no-call-value
-        (bool success, bytes memory returnData) = target.call{value: value}(
-            callData
-        );
+        (bool success, bytes memory returnData) =
+            target.call{value: value}(callData);
         require(
             success,
             "Timelock::executeTransaction: Transaction execution reverted."
