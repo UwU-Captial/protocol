@@ -65,9 +65,9 @@ contract Params is Ownable, Initializable {
     // Address of the multiSig treasury
     address public multiSigAddress;
 
-    // Address of dai staking pool with burned tokens
+    // Address of busd staking pool with burned tokens
     address public burnPool1;
-    // Address of uwu/dai staking pool with burned tokens
+    // Address of uwu/busd staking pool with burned tokens
     address public burnPool2;
 
     // Mean for log normal distribution
@@ -366,6 +366,15 @@ contract Params is Ownable, Initializable {
 
     // Lenght of the rebase cycles
     uint256 public cyclesLength;
+
+    modifier checkArrayAndIndex(uint256 index) {
+        require(cyclesLength != 0, "Cycle array is empty");
+        require(
+            index <= cyclesLength.sub(1),
+            "Index should not me more than items in the cycle array"
+        );
+        _;
+    }
 
     /**
      * @notice Function that initializes set of variables for the pool on launch

@@ -118,9 +118,9 @@ contract Oracle is Ownable, ExampleOracleSimple {
 
     constructor(
         address uwu_,
-        address Dai_,
+        address busd_,
         address uwuPolicy_
-    ) public ExampleOracleSimple(uniFactory, uwu_, Dai_) {
+    ) public ExampleOracleSimple(uniFactory, uwu_, busd_) {
         uwu = uwu_;
         uwuPolicy = uwuPolicy_;
     }
@@ -142,7 +142,7 @@ contract Oracle is Ownable, ExampleOracleSimple {
             "Only uwu policy can get data from oracle"
         );
         update();
-        uint256 price = consult(uwu, SCALE); // will return 1 BASED in Dai
+        uint256 price = consult(uwu, SCALE); // will return 1 BASED in Busd
 
         if (price == 0) {
             return (0, false);

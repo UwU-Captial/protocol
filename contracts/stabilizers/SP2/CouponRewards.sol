@@ -30,15 +30,6 @@ contract CouponRewards is Params {
         _;
     }
 
-    modifier checkArrayAndIndex(uint256 index) {
-        require(cyclesLength != 0, "Cycle array is empty");
-        require(
-            index <= cyclesLength.sub(1),
-            "Index should not me more than items in the cycle array"
-        );
-        _;
-    }
-
     function lastCouponRewardApplicable(uint256 index)
         internal
         view

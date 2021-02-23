@@ -111,7 +111,6 @@ contract ExampleOracleSimple {
 
 contract Oracle is ExampleOracleSimple {
     address public uwu;
-    address public dai;
     address public pool;
 
     uint256 constant SCALE = 10**18;
@@ -119,11 +118,10 @@ contract Oracle is ExampleOracleSimple {
 
     constructor(
         address uwu_,
-        address dai_,
+        address busd_,
         address pool_
-    ) public ExampleOracleSimple(uniFactory, uwu_, dai_) {
+    ) public ExampleOracleSimple(uniFactory, uwu_, busd_) {
         uwu = uwu_;
-        dai = dai_;
         pool = pool_;
     }
 
@@ -139,7 +137,7 @@ contract Oracle is ExampleOracleSimple {
     function getData() external returns (uint256, bool) {
         require(msg.sender == pool, "Only pool can get the oracle price");
         update();
-        uint256 price = consult(uwu, SCALE); // will return 1 BASED in Dai
+        uint256 price = consult(uwu, SCALE); // will return 1 BASED in Busd
 
         if (price == 0) {
             return (0, false);

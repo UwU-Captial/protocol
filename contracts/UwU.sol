@@ -63,43 +63,43 @@ contract UwU is ERC20, Initializable {
     constructor() public ERC20("UwU", "UWU") {}
 
     struct DropVariables {
-        uint256 uwuDaiPoolVal;
-        uint256 uwuDaiPoolGons;
-        uint256 uwuDaiLpPoolVal;
-        uint256 uwuDaiLpPoolGons;
-        uint256 airDropperVal;
-        uint256 airDropperGons;
+        uint256 debaseBridgeVal;
+        uint256 debaseBridgeGons;
+        uint256 debaseEthLpBridgeVal;
+        uint256 debaseEthLpBridgeGons;
+        uint256 UwUBusdLpVal;
+        uint256 UwUBusdLpGons;
         uint256 uwuPolicyPoolVal;
         uint256 uwuPolicyGons;
     }
 
     /**
-     * @notice Initializes with the policy,Dai,DaiLp pool as parameters. 
+     * @notice Initializes with the policy,Busd,BusdLp pool as parameters. 
                The function then sets the total supply to the initial supply and calculates the gon per fragment. 
-               It also sets the value and the gons for both the Dai and DaiLp reward pools.
-     * @param uwuDaiPool Address of the UwU Dai pool contract
-     * @param uwuDaiTotalRatio_ Ratio of total supply given to UwU Dai Pool
-     * @param uwuDaiLpPool Address of the UwU Dai Lp pool contract
-     * @param uwuDaiLpTotalRatio_ Ratio of total supply given to UwU Dai Lp Pool
-     * @param airDropper Address of the air dropper
-     * @param airDropperTotalRatio_ Ratio of total supply given to air dropper
+               It also sets the value and the gons for both the Busd and BusdLp reward pools.
+     * @param debaseBridgePool_ Address of the UwU Busd pool contract
+     * @param debaseBridgeTotalRatio_ Ratio of total supply given to UwU Busd Pool
+     * @param debaseEthLpBridgePool_ Address of the UwU Busd Lp pool contract
+     * @param debaseEthLpBridgeTotalRatio_ Ratio of total supply given to UwU Busd Lp Pool
+     * @param UwUBusdLpPool_ Address of the air dropper
+     * @param UwUBusdLpTotalRatio_ Ratio of total supply given to air dropper
      * @param uwuPolicy_ Address of the uwu policy
      * @param uwuPolicyTotalRatio_ Ratio of total supply given to uwu policy
      */
     function initialize(
-        address uwuDaiPool,
-        uint256 uwuDaiTotalRatio_,
-        address uwuDaiLpPool,
-        uint256 uwuDaiLpTotalRatio_,
-        address airDropper,
-        uint256 airDropperTotalRatio_,
+        address debaseBridgePool_,
+        uint256 debaseBridgeTotalRatio_,
+        address debaseEthLpBridgePool_,
+        uint256 debaseEthLpBridgeTotalRatio_,
+        address UwUBusdLpPool_,
+        uint256 UwUBusdLpTotalRatio_,
         address uwuPolicy_,
         uint256 uwuPolicyTotalRatio_
     ) external initializer {
         require(
-            uwuDaiTotalRatio_
-                .add(uwuDaiLpTotalRatio_)
-                .add(airDropperTotalRatio_)
+            debaseBridgeTotalRatio_
+                .add(debaseEthLpBridgeTotalRatio_)
+                .add(UwUBusdLpTotalRatio_)
                 .add(uwuPolicyTotalRatio_) == 100
         );
         DropVariables memory instance;
@@ -109,45 +109,44 @@ contract UwU is ERC20, Initializable {
 
         uwuPolicy = uwuPolicy_;
 
-        instance.uwuDaiPoolVal = _totalSupply.mul(uwuDaiTotalRatio_).div(
+        instance.debaseBridgeVal = _totalSupply
+            .mul(debaseBridgeTotalRatio_)
+            .div(100);
+        instance.debaseBridgeGons = instance.debaseBridgeVal.mul(
+            gonsPerFragment
+        );
+
+        instance.debaseEthLpBridgeVal = _totalSupply
+            .mul(debaseEthLpBridgeTotalRatio_)
+            .div(100);
+        instance.debaseEthLpBridgeGons = instance.debaseEthLpBridgeVal.mul(
+            gonsPerFragment
+        );
+
+        instance.UwUBusdLpVal = _totalSupply.mul(UwUBusdLpTotalRatio_).div(100);
+        instance.UwUBusdLpGons = instance.UwUBusdLpVal.mul(gonsPerFragment);
+
+        instance.uwuPolicyPoolVal = _totalSupply.mul(uwuPolicyTotalRatio_).div(
             100
         );
-        instance.uwuDaiPoolGons = instance.uwuDaiPoolVal.mul(
-            gonsPerFragment
-        );
+        instance.uwuPolicyGons = instance.uwuPolicyPoolVal.mul(gonsPerFragment);
 
-        instance.uwuDaiLpPoolVal = _totalSupply
-            .mul(uwuDaiLpTotalRatio_)
-            .div(100);
-        instance.uwuDaiLpPoolGons = instance.uwuDaiLpPoolVal.mul(
-            gonsPerFragment
-        );
-
-        instance.airDropperVal = _totalSupply.mul(airDropperTotalRatio_).div(
-            100
-        );
-
-        instance.airDropperGons = instance.airDropperVal.mul(gonsPerFragment);
-
-        instance.uwuPolicyPoolVal = _totalSupply
-            .mul(uwuPolicyTotalRatio_)
-            .div(100);
-        instance.uwuPolicyGons = instance.uwuPolicyPoolVal.mul(
-            gonsPerFragment
-        );
-
-        gonsBalance[uwuDaiPool] = instance.uwuDaiPoolGons;
-        gonsBalance[uwuDaiLpPool] = instance.uwuDaiLpPoolGons;
-        gonsBalance[airDropper] = instance.airDropperGons;
+        gonsBalance[debaseBridgePool_] = instance.debaseBridgeGons;
+        gonsBalance[debaseEthLpBridgePool_] = instance.debaseEthLpBridgeGons;
+        gonsBalance[UwUBusdLpPool_] = instance.UwUBusdLpGons;
         gonsBalance[uwuPolicy] = instance.uwuPolicyGons;
 
-        emit Transfer(address(0x0), uwuDaiPool, instance.uwuDaiPoolVal);
         emit Transfer(
             address(0x0),
-            uwuDaiLpPool,
-            instance.uwuDaiLpPoolVal
+            debaseBridgePool_,
+            instance.debaseBridgeVal
         );
-        emit Transfer(address(0x0), airDropper, instance.airDropperVal);
+        emit Transfer(
+            address(0x0),
+            debaseEthLpBridgePool_,
+            instance.debaseEthLpBridgeVal
+        );
+        emit Transfer(address(0x0), UwUBusdLpPool_, instance.UwUBusdLpVal);
         emit Transfer(address(0x0), uwuPolicy, instance.uwuPolicyPoolVal);
     }
 

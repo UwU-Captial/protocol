@@ -294,7 +294,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
             uint256 targetRate = 1050000000000000000;
             //policy.priceTargetRate().add(policy.upperDeviationThreshold());
 
-            // Get the difference between the current price and the target price (1.05$ Dai)
+            // Get the difference between the current price and the target price (1.05$ Busd)
             uint256 offset = exchangeRate_.add(curveShifter).sub(targetRate);
 
             // Use the offset to get the current curve value
@@ -383,7 +383,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
 
     /**
      * @notice Function that allows users to buy coupuns by send in uwu to the contract. When ever coupons are being bought
-     * the current we check the TWAP price of the uwu pair. If the price is above the lower threshold price (0.95 dai)
+     * the current we check the TWAP price of the uwu pair. If the price is above the lower threshold price (0.95 busd)
      * then no coupons can be bought. If the price is below than coupons can be bought. The uwu sent are routed to the
      * reward contract.
      * @param uwuSent UwU amount sent
