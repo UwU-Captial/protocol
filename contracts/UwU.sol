@@ -69,6 +69,8 @@ contract UwU is ERC20, Initializable {
         uint256 debaseEthLpBridgeGons;
         uint256 UwUBusdLpVal;
         uint256 UwUBusdLpGons;
+        uint256 seedPoolVal;
+        uint256 seedPoolGons;
         uint256 uwuPolicyPoolVal;
         uint256 uwuPolicyGons;
     }
@@ -81,8 +83,10 @@ contract UwU is ERC20, Initializable {
      * @param debaseBridgeTotalRatio_ Ratio of total supply given to UwU Busd Pool
      * @param debaseEthLpBridgePool_ Address of the UwU Busd Lp pool contract
      * @param debaseEthLpBridgeTotalRatio_ Ratio of total supply given to UwU Busd Lp Pool
-     * @param UwUBusdLpPool_ Address of the air dropper
-     * @param UwUBusdLpTotalRatio_ Ratio of total supply given to air dropper
+     * @param UwUBusdLpPool_ Address of the busd Lp Pool
+     * @param UwUBusdLpTotalRatio_ Ratio of total supply given to busd Lp Pool
+     * @param seedPool_ Address of the seed pool
+     * @param seedPoolTotalRatio_ Ratio of total supply given to seed pool
      * @param uwuPolicy_ Address of the uwu policy
      * @param uwuPolicyTotalRatio_ Ratio of total supply given to uwu policy
      */
@@ -93,6 +97,8 @@ contract UwU is ERC20, Initializable {
         uint256 debaseEthLpBridgeTotalRatio_,
         address UwUBusdLpPool_,
         uint256 UwUBusdLpTotalRatio_,
+        address seedPool_,
+        uint256 seedPoolTotalRatio_,
         address uwuPolicy_,
         uint256 uwuPolicyTotalRatio_
     ) external initializer {
@@ -100,6 +106,7 @@ contract UwU is ERC20, Initializable {
             debaseBridgeTotalRatio_
                 .add(debaseEthLpBridgeTotalRatio_)
                 .add(UwUBusdLpTotalRatio_)
+                .add(seedPoolTotalRatio_)
                 .add(uwuPolicyTotalRatio_) == 100
         );
         DropVariables memory instance;
@@ -126,6 +133,9 @@ contract UwU is ERC20, Initializable {
         instance.UwUBusdLpVal = _totalSupply.mul(UwUBusdLpTotalRatio_).div(100);
         instance.UwUBusdLpGons = instance.UwUBusdLpVal.mul(gonsPerFragment);
 
+        instance.seedPoolVal = _totalSupply.mul(seedPoolTotalRatio_).div(100);
+        instance.seedPoolGons = instance.seedPoolVal.mul(gonsPerFragment);
+
         instance.uwuPolicyPoolVal = _totalSupply.mul(uwuPolicyTotalRatio_).div(
             100
         );
@@ -134,6 +144,7 @@ contract UwU is ERC20, Initializable {
         gonsBalance[debaseBridgePool_] = instance.debaseBridgeGons;
         gonsBalance[debaseEthLpBridgePool_] = instance.debaseEthLpBridgeGons;
         gonsBalance[UwUBusdLpPool_] = instance.UwUBusdLpGons;
+        gonsBalance[seedPool_] = instance.seedPoolGons;
         gonsBalance[uwuPolicy] = instance.uwuPolicyGons;
 
         emit Transfer(
@@ -147,6 +158,7 @@ contract UwU is ERC20, Initializable {
             instance.debaseEthLpBridgeVal
         );
         emit Transfer(address(0x0), UwUBusdLpPool_, instance.UwUBusdLpVal);
+        emit Transfer(address(0x0), seedPool_, instance.seedPoolVal);
         emit Transfer(address(0x0), uwuPolicy, instance.uwuPolicyPoolVal);
     }
 
