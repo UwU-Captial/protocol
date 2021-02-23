@@ -102,13 +102,6 @@ contract UwU is ERC20, Initializable {
         address uwuPolicy_,
         uint256 uwuPolicyTotalRatio_
     ) external initializer {
-        require(
-            debaseBridgeTotalRatio_
-                .add(debaseEthLpBridgeTotalRatio_)
-                .add(UwUBusdLpTotalRatio_)
-                .add(seedPoolTotalRatio_)
-                .add(uwuPolicyTotalRatio_) == 100
-        );
         DropVariables memory instance;
 
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
