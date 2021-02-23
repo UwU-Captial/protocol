@@ -272,7 +272,7 @@ contract UwUPolicy is Ownable, Initializable {
 
         useDefaultRebaseLag = true;
         defaultPositiveRebaseLag = 15;
-        defaultNegativeRebaseLag = 15;
+        defaultNegativeRebaseLag = 30;
 
         minRebaseTimeIntervalSec = 24 hours;
         lastRebaseTimestampSec = 0;
