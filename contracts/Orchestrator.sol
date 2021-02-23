@@ -35,10 +35,10 @@ contract Orchestrator is Ownable, Initializable {
     IUwU public uwu;
     IUwUPolicy public uwuPolicy;
 
-    IPool public uwuDaiPool;
-    IPool public uwuDaiLpPool;
+    IPool public debaseBridgePool;
+    IPool public debaseEthLpBridgePool;
+    IPool public UwUBusdLpPool;
 
-    IPool public degovDaiLpPool;
     bool public rebaseStarted;
     uint256 public maximumRebaseTime;
     uint256 public rebaseRequiredSupply;
@@ -91,18 +91,18 @@ contract Orchestrator is Ownable, Initializable {
     function initialize(
         address uwu_,
         address uwuPolicy_,
-        address uwuDaiPool_,
-        address uwuDaiLpPool_,
-        address degovDaiLpPool_,
+        IPool debaseBridgePool_,
+        IPool debaseEthLpBridgePool_,
+        IPool UwUBusdLpPool_,
         uint256 rebaseRequiredSupply_,
         uint256 oracleStartTimeOffset
     ) external initializer {
         uwu = IUwU(uwu_);
         uwuPolicy = IUwUPolicy(uwuPolicy_);
 
-        uwuDaiPool = IPool(uwuDaiPool_);
-        uwuDaiLpPool = IPool(uwuDaiLpPool_);
-        degovDaiLpPool = IPool(degovDaiLpPool_);
+        debaseBridgePool = debaseBridgePool_;
+        debaseEthLpBridgePool = debaseEthLpBridgePool_;
+        UwUBusdLpPool_ = UwUBusdLpPool_;
 
         maximumRebaseTime = block.timestamp + oracleStartTimeOffset;
         rebaseStarted = false;
@@ -111,7 +111,6 @@ contract Orchestrator is Ownable, Initializable {
 
     function addUniPair(address token1, address token2) external onlyOwner {
         uniSyncs.push(UniPair(true, genUniAddr(token1, token2)));
-
         emit LogAddNewUniPair(token1, token2);
     }
 
@@ -128,8 +127,10 @@ contract Orchestrator is Ownable, Initializable {
         // To stop the rebase from getting stuck if no enough rewards are distributed. This will also start the degov/uwu pool reward drops
         if (!rebaseStarted) {
             uint256 rewardsDistributed =
-                uwuDaiPool.rewardDistributed().add(
-                    uwuDaiLpPool.rewardDistributed()
+                debaseBridgePool.rewardDistributed().add(
+                    debaseEthLpBridgePool.rewardDistributed().add(
+                        UwUBusdLpPool.rewardDistributed()
+                    )
                 );
 
             require(
@@ -138,8 +139,6 @@ contract Orchestrator is Ownable, Initializable {
                 "Not enough rewards distributed or time less than start time"
             );
 
-            //Start degov reward drop
-            degovDaiLpPool.startPool();
             rebaseStarted = true;
             emit LogRebaseStarted(block.timestamp);
         }
