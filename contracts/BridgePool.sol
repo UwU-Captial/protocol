@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 /*
 
-██████╗ ███████╗██████╗  █████╗ ███████╗███████╗
-██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
-██║  ██║█████╗  ██████╔╝███████║███████╗█████╗  
-██║  ██║██╔══╝  ██╔══██╗██╔══██║╚════██║██╔══╝  
-██████╔╝███████╗██████╔╝██║  ██║███████║███████╗
-╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
-                                               
-
-* Debase: ExpansionRewarder.sol
+██╗   ██╗██╗    ██╗██╗   ██╗
+██║   ██║██║    ██║██║   ██║
+██║   ██║██║ █╗ ██║██║   ██║
+██║   ██║██║███╗██║██║   ██║
+╚██████╔╝╚███╔███╔╝╚██████╔╝
+ ╚═════╝  ╚══╝╚══╝  ╚═════╝ 
+                            
+* UwU: BridgPool.sol
 * Description:
-* Pool that pool the issues rewards on expansions of debase supply
+* Pool that bridges eth assets into bsc and mines them for UwU
 * Coded by: punkUnknown
 */
 

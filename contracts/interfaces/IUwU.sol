@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
-interface IDebase {
+interface IUwU {
     function MAX_UINT256() external view returns (uint256);
 
     function INITIAL_FRAGMENTS_SUPPLY() external view returns (uint256);

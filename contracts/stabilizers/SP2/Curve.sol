@@ -9,7 +9,7 @@
 ╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
                                                
 
-* Debase: Curve.sol
+* UwU: Curve.sol
 * Description:
 * Log normal curve to generate curve values in relation to curve input
 * Coded by: punkUnknown

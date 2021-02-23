@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 /*
 
-██████╗ ███████╗██████╗  █████╗ ███████╗███████╗
-██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
-██║  ██║█████╗  ██████╔╝███████║███████╗█████╗  
-██║  ██║██╔══╝  ██╔══██╗██╔══██║╚════██║██╔══╝  
-██████╔╝███████╗██████╔╝██║  ██║███████║███████╗
-╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
-                                               
-
-* Debase: ExpansionRewarder.sol
+██╗   ██╗██╗    ██╗██╗   ██╗
+██║   ██║██║    ██║██║   ██║
+██║   ██║██║ █╗ ██║██║   ██║
+██║   ██║██║███╗██║██║   ██║
+╚██████╔╝╚███╔███╔╝╚██████╔╝
+ ╚═════╝  ╚══╝╚══╝  ╚═════╝ 
+                            
+* UwU: UwUPolicy.sol
 * Description:
-* Pool that pool the issues rewards on expansions of debase supply
+* Policy contract to manage UwU and rewards distributions
 * Coded by: punkUnknown
 */
 
@@ -24,19 +23,19 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./lib/SafeMathInt.sol";
 import "./lib/UInt256Lib.sol";
 import "./interfaces/IOracle.sol";
-import "./interfaces/IDebase.sol";
+import "./interfaces/IUwU.sol";
 import "./interfaces/IStabilizer.sol";
 
 /**
- * @title Debase Monetary Supply Policy
- * @dev This is an implementation of the Debase Ideal Money protocol.
- *      Debase operates asymmetrically on expansion and contraction. It will both split and
+ * @title UwU Monetary Supply Policy
+ * @dev This is an implementation of the UwU Ideal Money protocol.
+ *      UwU operates asymmetrically on expansion and contraction. It will both split and
  *      combine coins to maintain a stable unit price.
  *
- *      This component regulates the token supply of the Debase ERC20 token in response to
+ *      This component regulates the token supply of the UwU ERC20 token in response to
  *      market oracles.
  */
-contract DebasePolicy is Ownable, Initializable {
+contract UwUPolicy is Ownable, Initializable {
     using SafeMath for uint256;
     using SafeMathInt for int256;
     using UInt256Lib for uint256;
@@ -124,8 +123,8 @@ contract DebasePolicy is Ownable, Initializable {
         IStabilizer pool;
     }
 
-    // Address of the debase token
-    IDebase public debase;
+    // Address of the uwu token
+    IUwU public uwu;
 
     // Market oracle provides the token/USD exchange rate as an 18 decimal fixed point number.
     // (eg) An oracle value of 1.5e18 it would mean 1 Ample is trading for $1.50.
@@ -248,7 +247,7 @@ contract DebasePolicy is Ownable, Initializable {
 
     /**
      * @notice Function to set the oracle to get the exchange price
-     * @param oracle_ Address of the debase oracle
+     * @param oracle_ Address of the uwu oracle
      */
     function setOracle(address oracle_) external onlyOwner {
         oracle = IOracle(oracle_);
@@ -256,16 +255,16 @@ contract DebasePolicy is Ownable, Initializable {
     }
 
     /**
-     * @notice Initializes the debase policy with addresses of the debase token and the oracle deployer. Along with inital rebasing parameters
-     * @param debase_ Address of the debase token
+     * @notice Initializes the uwu policy with addresses of the uwu token and the oracle deployer. Along with inital rebasing parameters
+     * @param uwu_ Address of the uwu token
      * @param orchestrator_ Address of the protocol orchestrator
      */
-    function initialize(address debase_, address orchestrator_)
+    function initialize(address uwu_, address orchestrator_)
         external
         initializer
         onlyOwner
     {
-        debase = IDebase(debase_);
+        uwu = IUwU(uwu_);
         orchestrator = orchestrator_;
 
         upperDeviationThreshold = 5 * 10**(DECIMALS - 2);
@@ -326,14 +325,14 @@ contract DebasePolicy is Ownable, Initializable {
 
         if (
             supplyDelta > 0 &&
-            debase.totalSupply().add(uint256(supplyDelta)) > MAX_SUPPLY
+            uwu.totalSupply().add(uint256(supplyDelta)) > MAX_SUPPLY
         ) {
-            supplyDelta = (MAX_SUPPLY.sub(debase.totalSupply())).toInt256Safe();
+            supplyDelta = (MAX_SUPPLY.sub(uwu.totalSupply())).toInt256Safe();
         }
 
         triggerStabilizers(supplyDelta, rebaseLag, exchangeRate);
 
-        uint256 supplyAfterRebase = debase.rebase(epoch, supplyDelta);
+        uint256 supplyAfterRebase = uwu.rebase(epoch, supplyDelta);
         assert(supplyAfterRebase <= MAX_SUPPLY);
         emit LogRebase(epoch, exchangeRate, supplyDelta, rebaseLag, now);
     }
@@ -366,14 +365,14 @@ contract DebasePolicy is Ownable, Initializable {
         returns (bool)
     {
         StabilizerPool memory instance = stabilizerPools[index];
-        uint256 funderBalance = debase.balanceOf(address(this));
+        uint256 funderBalance = uwu.balanceOf(address(this));
 
         if (
             msg.sender == address(instance.pool) &&
             instance.enabled &&
             amount <= funderBalance
         ) {
-            debase.transfer(msg.sender, amount);
+            uwu.transfer(msg.sender, amount);
             return true;
         }
         return false;
@@ -711,7 +710,7 @@ contract DebasePolicy is Ownable, Initializable {
         // supplyDelta = totalSupply * (rate - targetRate) / targetRate
         int256 targetRateSigned = targetRate.toInt256Safe();
         return
-            debase
+            uwu
                 .totalSupply()
                 .toInt256Safe()
                 .mul(rate.toInt256Safe().sub(targetRateSigned))

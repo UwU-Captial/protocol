@@ -110,7 +110,7 @@ contract ExampleOracleSimple {
 }
 
 contract Oracle is ExampleOracleSimple {
-    address public debase;
+    address public uwu;
     address public dai;
     address public pool;
 
@@ -118,11 +118,11 @@ contract Oracle is ExampleOracleSimple {
     address constant uniFactory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
 
     constructor(
-        address debase_,
+        address uwu_,
         address dai_,
         address pool_
-    ) public ExampleOracleSimple(uniFactory, debase_, dai_) {
-        debase = debase_;
+    ) public ExampleOracleSimple(uniFactory, uwu_, dai_) {
+        uwu = uwu_;
         dai = dai_;
         pool = pool_;
     }
@@ -133,13 +133,13 @@ contract Oracle is ExampleOracleSimple {
     }
 
     /**
-     * @notice Get a price data sample from the oralce. Can only be called by the debase policy.
+     * @notice Get a price data sample from the oralce. Can only be called by the uwu policy.
      * @return The price and if the price if valid
      */
     function getData() external returns (uint256, bool) {
         require(msg.sender == pool, "Only pool can get the oracle price");
         update();
-        uint256 price = consult(debase, SCALE); // will return 1 BASED in Dai
+        uint256 price = consult(uwu, SCALE); // will return 1 BASED in Dai
 
         if (price == 0) {
             return (0, false);

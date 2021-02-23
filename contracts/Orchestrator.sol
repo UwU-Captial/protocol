@@ -1,28 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.6;
+/*
+
+██╗   ██╗██╗    ██╗██╗   ██╗
+██║   ██║██║    ██║██║   ██║
+██║   ██║██║ █╗ ██║██║   ██║
+██║   ██║██║███╗██║██║   ██║
+╚██████╔╝╚███╔███╔╝╚██████╔╝
+ ╚═════╝  ╚══╝╚══╝  ╚═════╝ 
+                            
+* UwU: Orchestrator.sol
+* Description:
+* Handles rebases issuance
+* Coded by: punkUnknown
+*/
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IDebase.sol";
-import "./interfaces/IDebasePolicy.sol";
+import "./interfaces/IUwU.sol";
+import "./interfaces/IUwUPolicy.sol";
 import "./interfaces/IPool.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
 /**
  * @title Orchestrator
- * @notice The orchestrator is the main entry point for rebase operations. It coordinates the debase policy
+ * @notice The orchestrator is the main entry point for rebase operations. It coordinates the uwu policy
  *         actions with external consumers.
  */
 contract Orchestrator is Ownable, Initializable {
     using SafeMath for uint256;
 
     // Stable ordering is not guaranteed.
-    IDebase public debase;
-    IDebasePolicy public debasePolicy;
+    IUwU public uwu;
+    IUwUPolicy public uwuPolicy;
 
-    IPool public debaseDaiPool;
-    IPool public debaseDaiLpPool;
+    IPool public uwuDaiPool;
+    IPool public uwuDaiLpPool;
 
     IPool public degovDaiLpPool;
     bool public rebaseStarted;
@@ -75,19 +89,19 @@ contract Orchestrator is Ownable, Initializable {
     }
 
     function initialize(
-        address debase_,
-        address debasePolicy_,
-        address debaseDaiPool_,
-        address debaseDaiLpPool_,
+        address uwu_,
+        address uwuPolicy_,
+        address uwuDaiPool_,
+        address uwuDaiLpPool_,
         address degovDaiLpPool_,
         uint256 rebaseRequiredSupply_,
         uint256 oracleStartTimeOffset
     ) external initializer {
-        debase = IDebase(debase_);
-        debasePolicy = IDebasePolicy(debasePolicy_);
+        uwu = IUwU(uwu_);
+        uwuPolicy = IUwUPolicy(uwuPolicy_);
 
-        debaseDaiPool = IPool(debaseDaiPool_);
-        debaseDaiLpPool = IPool(debaseDaiLpPool_);
+        uwuDaiPool = IPool(uwuDaiPool_);
+        uwuDaiLpPool = IPool(uwuDaiLpPool_);
         degovDaiLpPool = IPool(degovDaiLpPool_);
 
         maximumRebaseTime = block.timestamp + oracleStartTimeOffset;
@@ -103,7 +117,7 @@ contract Orchestrator is Ownable, Initializable {
 
     /**
      * @notice Main entry point to initiate a rebase operation.
-     *         The Orchestrator calls rebase on the debase policy and notifies downstream applications.
+     *         The Orchestrator calls rebase on the uwu policy and notifies downstream applications.
      *         Contracts are guarded from calling, to avoid flash loan attacks on liquidity
      *         providers.
      *         If a transaction in the transaction list reverts, it is swallowed and the remaining
@@ -111,11 +125,11 @@ contract Orchestrator is Ownable, Initializable {
      */
     function rebase() external {
         // Rebase will only be called when 95% of the total supply has been distributed or current time is 3 weeks since the orchestrator was deployed.
-        // To stop the rebase from getting stuck if no enough rewards are distributed. This will also start the degov/debase pool reward drops
+        // To stop the rebase from getting stuck if no enough rewards are distributed. This will also start the degov/uwu pool reward drops
         if (!rebaseStarted) {
             uint256 rewardsDistributed =
-                debaseDaiPool.rewardDistributed().add(
-                    debaseDaiLpPool.rewardDistributed()
+                uwuDaiPool.rewardDistributed().add(
+                    uwuDaiLpPool.rewardDistributed()
                 );
 
             require(
@@ -130,7 +144,7 @@ contract Orchestrator is Ownable, Initializable {
             emit LogRebaseStarted(block.timestamp);
         }
         require(msg.sender == tx.origin); // solhint-disable-line avoid-tx-origin
-        debasePolicy.rebase();
+        uwuPolicy.rebase();
 
         for (uint256 i = 0; i < uniSyncs.length; i++) {
             if (uniSyncs[i].enabled) {

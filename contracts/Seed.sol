@@ -1,6 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.6;
 
+/*
+
+██╗   ██╗██╗    ██╗██╗   ██╗
+██║   ██║██║    ██║██║   ██║
+██║   ██║██║ █╗ ██║██║   ██║
+██║   ██║██║███╗██║██║   ██║
+╚██████╔╝╚███╔███╔╝╚██████╔╝
+ ╚═════╝  ╚══╝╚══╝  ╚═════╝ 
+                            
+* UwU: Seed.sol
+* Description:
+* Seed contract for crowd sale of UwU
+* Coded by: punkUnknown
+*/
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";

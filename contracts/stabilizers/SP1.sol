@@ -9,9 +9,9 @@
 ╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
                                                
 
-* Debase: ExpansionRewarder.sol
+* UwU: ExpansionRewarder.sol
 * Description:
-* Pool that pool the issues rewards on expansions of debase supply
+* Pool that pool the issues rewards on expansions of uwu supply
 * Coded by: punkUnknown
 */
 
@@ -24,8 +24,8 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "../interfaces/IDebase.sol";
-import "../interfaces/IDebasePolicy.sol";
+import "../interfaces/IUwU.sol";
+import "../interfaces/IUwUPolicy.sol";
 
 contract LPTokenWrapper {
     using SafeMath for uint256;
@@ -92,8 +92,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     event LogSetMultiSigPercentage(uint256 multiSigReward_);
     event LogSetMultiSigAddress(address multiSigAddress_);
 
-    IDebase public debase;
-    IDebasePolicy public policy;
+    IUwU public uwu;
+    IUwUPolicy public policy;
     uint256 public blockDuration;
     bool public poolEnabled;
 
@@ -248,7 +248,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     }
 
     constructor(
-        address debase_,
+        address uwu_,
         address pairToken_,
         address policy_,
         uint256 rewardPercentage_,
@@ -262,8 +262,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         uint256 poolLpLimit_
     ) public {
         setStakeToken(pairToken_);
-        debase = IDebase(debase_);
-        policy = IDebasePolicy(policy_);
+        uwu = IUwU(uwu_);
+        policy = IUwUPolicy(policy_);
 
         blockDuration = blockDuration_;
         rewardPercentage = rewardPercentage_;
@@ -285,13 +285,13 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     ) external {
         require(
             msg.sender == address(policy),
-            "Only debase policy contract can call this"
+            "Only uwu policy contract can call this"
         );
 
         if (multiSigRewardAmount != 0) {
-            debase.transfer(
+            uwu.transfer(
                 multiSigRewardAddress,
-                debase.gonsToAmount(multiSigRewardAmount)
+                uwu.gonsToAmount(multiSigRewardAmount)
             );
             multiSigRewardAmount = 0;
         }
@@ -300,15 +300,15 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             if (supplyDelta_ >= 0) {
                 if (rewardShare != 0) {
                     uint256 balanceLost = rewardShare.sub(rewardPerTokenMax());
-                    debase.transfer(
+                    uwu.transfer(
                         address(policy),
-                        debase.gonsToAmount(balanceLost)
+                        uwu.gonsToAmount(balanceLost)
                     );
                     rewardShare = 0;
                 }
 
                 uint256 rewardAmount =
-                    debase.totalSupply().mul(rewardPercentage).div(10**18);
+                    uwu.totalSupply().mul(rewardPercentage).div(10**18);
 
                 multiSigRewardAmount = rewardAmount
                     .mul(multiSigRewardPercentage)
@@ -340,7 +340,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
      * @notice Function allows for emergency withdrawal of all reward tokens back into stabilizer fund
      */
     function emergencyWithdraw() external onlyOwner {
-        debase.transfer(address(policy), debase.balanceOf(address(this)));
+        uwu.transfer(address(policy), uwu.balanceOf(address(this)));
         emit LogEmergencyWithdraw(block.number);
     }
 
@@ -442,8 +442,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         if (reward > 0) {
             rewards[msg.sender] = 0;
 
-            uint256 amountToClaim = debase.gonsToAmount(reward);
-            debase.transfer(msg.sender, amountToClaim);
+            uint256 amountToClaim = uwu.gonsToAmount(reward);
+            uwu.transfer(msg.sender, amountToClaim);
 
             emit LogRewardPaid(msg.sender, amountToClaim);
             rewardDistributed = rewardDistributed.add(reward);
