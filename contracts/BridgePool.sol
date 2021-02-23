@@ -77,21 +77,17 @@ contract BridgePool is Ownable, Initializable {
         _;
     }
 
-    function initialize(
-        address rewardToken_,
-        address pairToken_,
-        bool isUniPair,
-        uint256 duration_
-    ) public initializer {
+    function initialize(address rewardToken_, uint256 duration_)
+        public
+        initializer
+    {
         rewardToken = IERC20(rewardToken_);
-
         maxReward = rewardToken.balanceOf(address(this));
         duration = duration_;
     }
 
     function startPool() external {
         require(!poolEnabled, "Pool can only be started once");
-
         poolEnabled = true;
         startNewDistribtionCycle(maxReward.mul(50).div(100));
     }
@@ -136,10 +132,6 @@ contract BridgePool is Ownable, Initializable {
         onlyOwner
         checkHalve
     {
-        require(
-            !address(msg.sender).isContract(),
-            "Caller must not be a contract"
-        );
         require(users.length == amounts.length);
 
         for (uint256 index = 0; index < users.length; index = index.add(1)) {
@@ -148,13 +140,13 @@ contract BridgePool is Ownable, Initializable {
         }
     }
 
-    function getReward() public updateReward(msg.sender) checkHalve enabled {
+    function getReward() public updateReward(msg.sender) enabled {
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
             rewardToken.safeTransfer(msg.sender, reward);
-            emit RewardPaid(msg.sender, reward);
             rewardDistributed = rewardDistributed.add(reward);
+            emit RewardPaid(msg.sender, reward);
         }
     }
 
@@ -162,14 +154,8 @@ contract BridgePool is Ownable, Initializable {
         internal
         updateReward(address(0))
     {
-        if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(duration);
-        } else {
-            uint256 remaining = periodFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(duration);
-        }
         initReward = reward;
+        rewardRate = reward.div(duration);
         lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp.add(duration);
         emit RewardAdded(reward);

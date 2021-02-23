@@ -225,8 +225,8 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
         if (reward > 0) {
             rewards[msg.sender] = 0;
             rewardToken.safeTransfer(msg.sender, reward);
-            emit RewardPaid(msg.sender, reward);
             rewardDistributed = rewardDistributed.add(reward);
+            emit RewardPaid(msg.sender, reward);
         }
     }
 
@@ -234,14 +234,8 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
         internal
         updateReward(address(0))
     {
-        if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(duration);
-        } else {
-            uint256 remaining = periodFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(duration);
-        }
         initReward = reward;
+        rewardRate = reward.div(duration);
         lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp.add(duration);
         emit RewardAdded(reward);
