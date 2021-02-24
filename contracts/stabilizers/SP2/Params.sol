@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../lib/SafeMathInt.sol";
+import '../../interfaces/IUwU.sol';
 
 interface IUwUPolicy {
     function upperDeviationThreshold() external view returns (uint256);
@@ -17,7 +18,6 @@ interface IUwUPolicy {
     function priceTargetRate() external view returns (uint256);
 }
 
-interface IOracle {
     function getData() external returns (uint256, bool);
 
     function updateData() external;
@@ -33,7 +33,7 @@ contract Params is Ownable, Initializable {
     event LogSetRewardBlockPeriod(uint256 rewardBlockPeriod_);
     event LogSetMultiSigRewardShare(uint256 multiSigRewardShare_);
     event LogSetInitialRewardShare(uint256 initialRewardShare_);
-    event LogSetMultiSigAddress(address multiSigAddress_);
+    event LogSetMultiSigRewardAddress(address multiSigRewardAddress_);
     event LogSetOracleBlockPeriod(uint256 oracleBlockPeriod_);
     event LogSetEpochs(uint256 epochs_);
     event LogSetCurveShifter(uint256 curveShifter_);
@@ -59,11 +59,11 @@ contract Params is Ownable, Initializable {
     // Address of the uwu policy/reward contract
     IUwUPolicy public policy;
     // Address of the uwu token
-    IERC20 public uwu;
+    IUwU public uwu;
     // Address of the oracle contract managing opening and closing of coupon buying
     IOracle public oracle;
     // Address of the multiSig treasury
-    address public multiSigAddress;
+    address public multiSigRewardAddress;
 
     // Address of busd staking pool with burned tokens
     address public burnPool1;
@@ -114,8 +114,6 @@ contract Params is Ownable, Initializable {
     uint256 public maximumRewardAccruedCap = 100000000000000000;
     // The percentage of the current reward to be given in an epoch to be routed to the treasury
     uint256 public multiSigRewardShare;
-    // The percentage of the total supply that can be claimed as rewards for the treasury
-    uint256 public multiSigRewardToClaimShare;
     // Flag to stop rewards to be given out if rebases go from positive to neutral
     bool public positiveToNeutralRebaseRewardsDisabled;
 
@@ -246,11 +244,11 @@ contract Params is Ownable, Initializable {
 
     /**
      * @notice Function to set the multiSig treasury address to get treasury rewards
-     * @param multiSigAddress_ New multi sig treasury address
+     * @param multiSigRewardAddress New multi sig treasury address
      */
-    function setMultiSigAddress(address multiSigAddress_) external onlyOwner {
-        multiSigAddress = multiSigAddress_;
-        emit LogSetMultiSigAddress(multiSigAddress);
+    function setMultiSigRewardAddress(address multiSigRewardAddress_) external onlyOwner {
+        multiSigRewardAddress = multiSigRewardAddress_;
+        emit LogSetMultiSigRewardAddress(multiSigRewardAddress);
     }
 
     /**
@@ -386,7 +384,7 @@ contract Params is Ownable, Initializable {
      * @notice Function that initializes set of variables for the pool on launch
      */
     function initialize(
-        address uwu_,
+        IUwU uwu_,
         IOracle oracle_,
         IUwUPolicy policy_,
         address burnPool1_,
@@ -394,14 +392,14 @@ contract Params is Ownable, Initializable {
         uint256 epochs_,
         uint256 curveShifter_,
         uint256 initialRewardShare_,
-        address multiSigAddress_,
+        address multiSigRewardAddress_,
         uint256 multiSigRewardShare_,
         bytes16 mean_,
         bytes16 deviation_,
         bytes16 oneDivDeviationSqrtTwoPi_,
         bytes16 twoDeviationSquare_
     ) external initializer onlyOwner {
-        uwu = IERC20(uwu_);
+        uwu = uwu_;
         burnPool1 = burnPool1_;
         burnPool2 = burnPool2_;
         policy = policy_;
@@ -415,7 +413,7 @@ contract Params is Ownable, Initializable {
         twoDeviationSquare = twoDeviationSquare_;
         initialRewardShare = initialRewardShare_;
         multiSigRewardShare = multiSigRewardShare_;
-        multiSigAddress = multiSigAddress_;
+        multiSigRewardAddress = multiSigRewardAddress_;
 
         lastRebase = Rebase.NONE;
     }

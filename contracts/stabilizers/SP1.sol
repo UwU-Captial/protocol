@@ -278,7 +278,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     }
 
     function triggerStabilizer(
-        uint256 index,
+        uint256 index_,
         int256 supplyDelta_,
         int256 rebaseLag_,
         uint256 exchangeRate_
@@ -307,7 +307,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
 
                 if (
                     policy.stabilizerClaimFromFund(
-                        index,
+                        index_,
                         poolRewardAmount,
                         multiSigRewardAddress,
                         multiSigRewardAmount

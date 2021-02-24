@@ -115,10 +115,10 @@ contract CouponRewards is Params {
     ) internal updateCouponReward(address(0), cyclesLength.sub(1)) {
         // https://sips.synthetix.io/sips/sip-77
         require(
-            uwu.balanceOf(address(this)).add(totalUwUToClaim) <
-                uint256(-1) / 10**18,
+            poolTotalShare < uint256(-1) / 10**18,
             "Rewards: rewards too large, would lock"
         );
+
         CouponCycle storage instance = couponCycles[cyclesLength.sub(1)];
 
         if (block.number >= instance.periodFinish) {

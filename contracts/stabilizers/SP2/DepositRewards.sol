@@ -106,10 +106,11 @@ contract DepositRewards is Params {
         updateDepositReward(address(0), cyclesLength.sub(1))
     {
         DepositCycle storage instance = depositCycles[cyclesLength.sub(1)];
-        instance.rewardRate = instance.totalBalance.div(
+
+        instance.started = true;
+        instance.rewardRate = uwu.amountToGons(instance.totalBalance).div(
             instance.rewardBlockPeriod
         );
-
         instance.lastUpdateBlock = block.number;
         instance.periodFinish = block.number.add(instance.rewardBlockPeriod);
     }

@@ -5,9 +5,9 @@ interface IUwUPolicy {
     function rebase() external;
 
     function stabilizerClaimFromFund(
-        uint256 index,
-        uint256 amount,
-        address feeClaimant,
-        uint256 feeAmount
+        uint256 index_,
+        uint256 amount_,
+        address feeClaimant_,
+        uint256 feeAmount_
     ) external returns (bool);
 }
