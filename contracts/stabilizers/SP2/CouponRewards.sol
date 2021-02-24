@@ -103,13 +103,12 @@ contract CouponRewards is Params {
             );
 
             emit LogCouponRewardClaimed(msg.sender, index, rewardToClaim);
-            uwu.safeTransfer(msg.sender, rewardToClaim);
+            uwu.transfer(msg.sender, rewardToClaim);
         }
     }
 
     function startNewCouponDistributionCycle(
         uint256 exchangeRate_,
-        uint256 totalUwUToClaim,
         uint256 poolTotalShare,
         bytes16 curveValue
     ) internal updateCouponReward(address(0), cyclesLength.sub(1)) {

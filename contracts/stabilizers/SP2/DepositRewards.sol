@@ -97,7 +97,7 @@ contract DepositRewards is Params {
             );
 
             emit LogDepositRewardClaimed(msg.sender, index, rewardToClaim);
-            uwu.safeTransfer(msg.sender, rewardToClaim);
+            uwu.transfer(msg.sender, rewardToClaim);
         }
     }
 

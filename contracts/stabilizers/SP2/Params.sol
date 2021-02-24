@@ -8,20 +8,9 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../lib/SafeMathInt.sol";
-import '../../interfaces/IUwU.sol';
-
-interface IUwUPolicy {
-    function upperDeviationThreshold() external view returns (uint256);
-
-    function lowerDeviationThreshold() external view returns (uint256);
-
-    function priceTargetRate() external view returns (uint256);
-}
-
-    function getData() external returns (uint256, bool);
-
-    function updateData() external;
-}
+import "../../interfaces/IUwU.sol";
+import "../../interfaces/IUwUPolicy.sol";
+import "../../interfaces/IOracle.sol";
 
 contract Params is Ownable, Initializable {
     using SafeERC20 for IERC20;
@@ -244,9 +233,12 @@ contract Params is Ownable, Initializable {
 
     /**
      * @notice Function to set the multiSig treasury address to get treasury rewards
-     * @param multiSigRewardAddress New multi sig treasury address
+     * @param multiSigRewardAddress_ New multi sig treasury address
      */
-    function setMultiSigRewardAddress(address multiSigRewardAddress_) external onlyOwner {
+    function setMultiSigRewardAddress(address multiSigRewardAddress_)
+        external
+        onlyOwner
+    {
         multiSigRewardAddress = multiSigRewardAddress_;
         emit LogSetMultiSigRewardAddress(multiSigRewardAddress);
     }

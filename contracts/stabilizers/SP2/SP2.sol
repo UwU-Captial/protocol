@@ -184,14 +184,11 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
      * @notice Function that issues rewards when a positive rebase is about to happen.
      * @param index_ The index of the pool
      * @param exchangeRate_ The current exchange rate at rebase
-     * @param uwuPolicyBalance The current balance of the fund contract
      * @param curveValue Value of the log normal curve
-     * @return Returns amount of rewards to be claimed from a positive rebase
      */
     function issueRewards(
         uint256 index_,
         uint256 exchangeRate_,
-        uint256 uwuPolicyBalance,
         bytes16 curveValue
     ) internal {
         CouponCycle storage instance = couponCycles[cyclesLength.sub(1)];
@@ -203,9 +200,8 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
             bytes16ToUnit256(curveValue, instance.uwuPerEpoch);
 
         // Claim multi sig reward in relation to scaled uwu reward
-        multiSigRewardToClaimShare = uwuShareToBeRewarded
-            .mul(multiSigRewardShare)
-            .div(10**18);
+        uint256 multiSigRewardToClaimShare =
+            uwuShareToBeRewarded.mul(multiSigRewardShare).div(10**18);
 
         // Convert reward to token amount
         uint256 uwuClaimAmount =
@@ -219,14 +215,13 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
             policy.stabilizerClaimFromFund(
                 index_,
                 uwuClaimAmount,
-                multiSigAddress,
+                multiSigRewardAddress,
                 multiSigRewardToClaimAmount
             )
         ) {
             // Start new reward distribution cycle in relation to just uwu claim amount
             startNewCouponDistributionCycle(
                 exchangeRate_,
-                totalUwUToClaim,
                 uwuShareToBeRewarded,
                 curveValue
             );
@@ -239,7 +234,6 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
      * @param supplyDelta_ Supply delta of the rebase to happen
      * @param rebaseLag_ Rebase lag applied to the supply delta
      * @param exchangeRate_ Exchange rate at which the rebase is happening
-     * @return Amount of uwu to be claimed from the reward contract
      */
     function triggerStabilizer(
         uint256 index_,
@@ -331,7 +325,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
                 couponCycles[cyclesLength.sub(1)].totalBalance != 0 &&
                 couponCycles[cyclesLength.sub(1)].epochsRewarded < epochs
             ) {
-                issueRewards(index_, exchangeRate_, uwuPolicyBalance, value);
+                issueRewards(index_, exchangeRate_, value);
             }
         }
     }
@@ -420,7 +414,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
                 uwuSent,
                 rewardInstance.totalBalance
             );
-            uwu.safeTransferFrom(msg.sender, address(policy), uwuSent);
+            uwu.transferFrom(msg.sender, address(policy), uwuSent);
 
             return true;
         }
@@ -429,7 +423,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
 
     function emergencyWithdraw() external onlyOwner {
         uint256 withdrawAmount = uwu.balanceOf(address(this));
-        uwu.safeTransfer(address(policy), withdrawAmount);
+        uwu.transfer(address(policy), withdrawAmount);
         emit LogEmergencyWithdrawa(withdrawAmount);
     }
 }
