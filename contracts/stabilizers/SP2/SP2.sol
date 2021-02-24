@@ -123,12 +123,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
                     rewardShare,
                     uwuPerEpoch,
                     couponRewardBlockPeriod,
-                    couponBuyBlockPeriod,
-                    couponLockBlockPeriod,
-                    exchangeRate_,
-                    block.number.add(couponBuyBlockPeriod),
                     epochs,
-                    true,
                     0,
                     0,
                     0,
@@ -141,6 +136,16 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
 
             depositCycles.push(
                 DepositCycle(false, depositRewardBlockPeriod, 0, 0, 0, 0, 0, 0)
+            );
+
+            oracleCycles.push(
+                OracleCycle(
+                    false,
+                    couponBuyBlockPeriod,
+                    couponLockBlockPeriod,
+                    exchangeRate_,
+                    block.number.add(couponBuyBlockPeriod)
+                )
             );
 
             emit LogNewCouponCycle(
@@ -159,11 +164,11 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
             positiveToNeutralRebaseRewardsDisabled = false;
             rewardsAccrued = 0;
         } else {
-            CouponCycle storage instance = couponCycles[cyclesLength.sub(1)];
+            OracleCycle storage instance = oracleCycles[cyclesLength.sub(1)];
 
             instance.oracleLastPrice = exchangeRate_;
             instance.oracleNextUpdate = block.number.add(
-                instance.couponBuyBlockPeriod
+                instance.oracleBuyBlockPeriod
             );
 
             emit LogOraclePriceAndPeriod(
@@ -354,7 +359,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
         uint256 lowerPriceThreshold = 950000000000000000;
         //policy.priceTargetRate().sub(policy.lowerDeviationThreshold());
 
-        CouponCycle storage instance = couponCycles[cyclesLength.sub(1)];
+        OracleCycle storage instance = oracleCycles[cyclesLength.sub(1)];
 
         if (block.number > instance.oracleNextUpdate) {
             bool valid;
@@ -364,12 +369,12 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
 
             if (instance.oracleLastPrice < lowerPriceThreshold) {
                 instance.oracleNextUpdate = block.number.add(
-                    instance.couponBuyBlockPeriod
+                    instance.oracleBuyBlockPeriod
                 );
                 instance.couponBuying = true;
             } else {
                 instance.oracleNextUpdate = block.number.add(
-                    instance.couponLockBlockPeriod
+                    instance.oracleLockBlockPeriod
                 );
                 instance.couponBuying = false;
             }
@@ -402,8 +407,9 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
         CouponCycle storage rewardInstance = couponCycles[cyclesLength.sub(1)];
         DepositCycle storage depositInstance =
             depositCycles[cyclesLength.sub(1)];
+        OracleCycle storage oracleInstance = oracleCycles[cyclesLength.sub(1)];
 
-        if (rewardInstance.couponBuying) {
+        if (oracleInstance.couponBuying) {
             uint256 uwuDepositShare =
                 uwuSent.mul(10**18).div(uwu.totalSupply());
 

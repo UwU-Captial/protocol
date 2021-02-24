@@ -315,18 +315,8 @@ contract Params is Ownable, Initializable {
         uint256 uwuPerEpoch;
         // The number of blocks to give out rewards per epoch
         uint256 rewardBlockPeriod;
-        // The number of blocks coupons can be bought
-        uint256 couponBuyBlockPeriod;
-        // The number of blocks coupons cant be bought
-        uint256 couponLockBlockPeriod;
-        // Last Price of the oracle used to open or close coupon buying
-        uint256 oracleLastPrice;
-        // The block number when the oracle with update next
-        uint256 oracleNextUpdate;
         // Shows the number of epoch(rebases) to distribute rewards for
         uint256 epochsToReward;
-        // Flag to enable or disable coupon buying
-        bool couponBuying;
         // Flag to start deposit distibution from previous cycle
         uint256 epochsRewarded;
         // The number if coupouns issued/UwU sold in the contraction cycle
@@ -340,6 +330,19 @@ contract Params is Ownable, Initializable {
         mapping(address => uint256) userRewardPerTokenPaid;
         mapping(address => uint256) rewards;
         uint256 rewardsDistributed;
+    }
+
+    struct OracleCycle {
+        // Flag to enable or disable coupon buying
+        bool couponBuying;
+        // The number of blocks coupons can be bought
+        uint256 oracleBuyBlockPeriod;
+        // The number of blocks coupons cant be bought
+        uint256 oracleLockBlockPeriod;
+        // Last Price of the oracle used to open or close coupon buying
+        uint256 oracleLastPrice;
+        // The block number when the oracle with update next
+        uint256 oracleNextUpdate;
     }
 
     struct DepositCycle {
@@ -363,6 +366,9 @@ contract Params is Ownable, Initializable {
 
     // Array of rebase cycles
     DepositCycle[] public depositCycles;
+
+    //Arry of oracle cycles
+    OracleCycle[] public oracleCycles;
 
     // Lenght of the rebase cycles
     uint256 public cyclesLength;
