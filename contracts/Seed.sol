@@ -24,41 +24,49 @@ contract Seed {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address devWallet;
     IERC20 public UwU;
     IERC20 public BNB;
 
     uint256 priceAtLaunch;
-    uint256 UwUDistribution;
     uint256 tokenExchangeRate;
+    uint256 BNBCap;
+    uint256 walletBNBCap;
+    uint256 walletCap;
+    uint256 UwUDistribution;
 
     uint256 BNBDeposited;
     uint256 UwUDistributed;
 
+    mapping(address => uint256) BNBbalance;
+
     constructor(
         IERC20 UwU_,
         IERC20 BNB_,
-        address devWallet_,
-        uint256 UwUDistribution_,
+        uint256 BNBCap_,
+        uint256 walletBNBCap_,
         uint256 priceAtLaunch_,
         uint256 tokenExchangeRate_
     ) public {
-        devWallet = devWallet_;
         UwU = UwU_;
         BNB = BNB_;
 
-        UwUDistribution = UwUDistribution_;
+        UwUDistribution = UwU.balanceOf(address(this));
         priceAtLaunch = priceAtLaunch_;
+        BNBCap = BNBCap_;
+        walletBNBCap = walletBNBCap_;
         tokenExchangeRate = tokenExchangeRate_;
     }
 
     function deposit(uint256 amount) external {
-        uint256 UwUToRecieve = amount.mul(tokenExchangeRate);
-
+        uint256 currentBNBBalance = BNBbalance[msg.sender].add(amount);
+        require(currentBNBBalance <= walletBNBCap);
+        BNBbalance[msg.sender] = currentBNBBalance;
         BNBDeposited = BNBDeposited.add((amount));
+
+        uint256 UwUToRecieve = amount.mul(tokenExchangeRate);
         UwUDistributed = UwUDistributed.add(UwUToRecieve);
 
-        BNB.transferFrom(msg.sender, devWallet, amount);
+        BNB.transferFrom(msg.sender, address(this), amount);
         UwU.transfer(msg.sender, UwUToRecieve);
     }
 }

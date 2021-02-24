@@ -8,6 +8,7 @@ import { Erc20 } from '../type/Erc20';
 import { IUniswapV2Pair } from '../type/IUniswapV2Pair';
 
 import { parseEther, parseUnits } from 'ethers/lib/utils';
+import { BigNumber } from 'ethers';
 
 async function main() {
 	const signer = await ethers.getSigners();
@@ -17,15 +18,17 @@ async function main() {
 		const UwU = new ethers.Contract('', ERC20Artifact.abi, signer[0]) as Erc20;
 		const BNB = new ethers.Contract('', ERC20Artifact.abi, signer[0]) as Erc20;
 
-		const devWallet = '';
 		const uwuDistribution = parseEther('20000');
 		const seedCap = parseEther('750000');
+		const walletCapPercentage = 5;
+		const scale = parseEther('1');
 
 		const uniswapV2Pair = new ethers.Contract('', IUniswapV2PairArtifact.abi, signer[0]) as IUniswapV2Pair;
 		const data = await uniswapV2Pair.getReserves();
 
-		const currentPrice = data.reserve1.div(data.reserve0);
+		const currentPrice = data.reserve1.div(data.reserve0).mul(scale);
 		const bnbCap = seedCap.div(currentPrice);
+		const walletCap = bnbCap.mul(walletCapPercentage).div(100);
 		const tokenExchangeRate = uwuDistribution.div(bnbCap);
 
 		const seedFactory = (new ethers.ContractFactory(
@@ -37,8 +40,8 @@ async function main() {
 		const seed = await seedFactory.deploy(
 			UwU.address,
 			BNB.address,
-			devWallet,
-			uwuDistribution,
+			bnbCap,
+			walletCap,
 			currentPrice,
 			tokenExchangeRate
 		);
