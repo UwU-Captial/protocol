@@ -114,7 +114,6 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     uint256 public cycleEnds;
 
     uint256 public multiSigRewardPercentage;
-    uint256 public multiSigRewardAmount;
     address public multiSigRewardAddress;
 
     //Flag to enable amount of lp that can be staked by a account
@@ -269,8 +268,9 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         rewardPercentage = rewardPercentage_;
 
         stabilityRewardRatePercentage = stabilityRewardRatePercentage_;
-        multiSigRewardPercentage = multiSigRewardPercentage_;
         multiSigRewardAddress = multiSigRewardAddress_;
+        multiSigRewardPercentage = multiSigRewardPercentage_;
+
         userLpLimit = userLpLimit_;
         enableUserLpLimit = enableUserLpLimit_;
         poolLpLimit = poolLpLimit_;
@@ -288,14 +288,6 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             "Only uwu policy contract can call this"
         );
 
-        if (multiSigRewardAmount != 0) {
-            uwu.transfer(
-                multiSigRewardAddress,
-                uwu.gonsToAmount(multiSigRewardAmount)
-            );
-            multiSigRewardAmount = 0;
-        }
-
         if (block.number >= cycleEnds) {
             if (supplyDelta_ >= 0) {
                 if (rewardShare != 0) {
@@ -307,18 +299,21 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
                     rewardShare = 0;
                 }
 
-                uint256 rewardAmount =
+                uint256 poolRewardAmount =
                     uwu.totalSupply().mul(rewardPercentage).div(10**18);
 
-                multiSigRewardAmount = rewardAmount
-                    .mul(multiSigRewardPercentage)
-                    .div(10**18);
+                uint256 multiSigRewardAmount =
+                    poolRewardAmount.mul(multiSigRewardPercentage).div(10**18);
 
-                uint256 totalRewardAmount =
-                    multiSigRewardAmount.add(rewardAmount);
-
-                if (policy.stabilizerClaimFromFund(index, totalRewardAmount)) {
-                    startNewDistribtionCycle(supplyDelta_, rewardAmount);
+                if (
+                    policy.stabilizerClaimFromFund(
+                        index,
+                        poolRewardAmount,
+                        multiSigRewardAddress,
+                        multiSigRewardAmount
+                    )
+                ) {
+                    startNewDistribtionCycle(supplyDelta_, poolRewardAmount);
                 }
             }
         } else {
@@ -443,6 +438,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             rewards[msg.sender] = 0;
 
             uint256 amountToClaim = uwu.gonsToAmount(reward);
+
             uwu.transfer(msg.sender, amountToClaim);
 
             emit LogRewardPaid(msg.sender, amountToClaim);
@@ -482,10 +478,13 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             "Rewards: rewards too large, would lock"
         );
 
+        uint256 gonsAmount = uwu.amountToGons(amount);
+
         periodFinish = block.number.add(blockDuration);
         rewardPerTokenStoredMax = 0;
         cycleEnds = periodFinish;
-        expansionRewardRate = amount.div(blockDuration);
+
+        expansionRewardRate = gonsAmount.div(blockDuration);
         stabilityRewardRate = expansionRewardRate
             .mul(stabilityRewardRatePercentage)
             .div(10**18);
@@ -499,7 +498,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         lastUpdateBlock = block.number;
 
         emit LogStartNewDistribtionCycle(
-            amount,
+            gonsAmount,
             rewardRate,
             expansionRewardRate,
             stabilityRewardRate,

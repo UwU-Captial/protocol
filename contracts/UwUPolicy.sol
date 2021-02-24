@@ -359,20 +359,24 @@ contract UwUPolicy is Ownable, Initializable {
         }
     }
 
-    function stabilizerClaimFromFund(uint256 index, uint256 amount)
-        external
-        indexInBounds(index)
-        returns (bool)
-    {
+    function stabilizerClaimFromFund(
+        uint256 index,
+        uint256 amount,
+        address feeClaimant,
+        uint256 feeAmount
+    ) external indexInBounds(index) returns (bool) {
         StabilizerPool memory instance = stabilizerPools[index];
         uint256 funderBalance = uwu.balanceOf(address(this));
 
         if (
             msg.sender == address(instance.pool) &&
             instance.enabled &&
-            amount <= funderBalance
+            amount.add(feeAmount) <= funderBalance
         ) {
             uwu.transfer(msg.sender, amount);
+            if (feeAmount != 0) {
+                uwu.transfer(feeClaimant, feeAmount);
+            }
             return true;
         }
         return false;

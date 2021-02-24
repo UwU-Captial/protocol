@@ -14,6 +14,8 @@ interface IUwU {
 
     function gonsBalance(address who) external view returns (uint256);
 
+    function amountToGons(uint256 amount) external view returns (uint256);
+
     function allowedFragments(address from, address to)
         external
         view

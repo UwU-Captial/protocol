@@ -231,22 +231,6 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
     }
 
     /**
-     * @notice Function called by treasury to claim multi sig reward percentage. Since claims can only happen after the rebase reward
-     * contract has rewarded the pool
-     */
-    function claimMultiSigReward() external {
-        require(
-            msg.sender == multiSigAddress,
-            "Only multiSigAddress can claim reward"
-        );
-
-        uint256 amountToClaim =
-            uwu.totalSupply().mul(multiSigRewardToClaimShare).div(10**18);
-        uwu.transfer(multiSigAddress, amountToClaim);
-        multiSigRewardToClaimShare = 0;
-    }
-
-    /**
      * @notice Function called by the reward contract to start new distribution cycles
      * @param supplyDelta_ Supply delta of the rebase to happen
      * @param rebaseLag_ Rebase lag applied to the supply delta
@@ -264,6 +248,13 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
             msg.sender == address(policy),
             "Only uwu policy contract can call this"
         );
+
+        if (multiSigRewardToClaimShare != 0) {
+            uint256 amountToClaim =
+                uwu.totalSupply().mul(multiSigRewardToClaimShare).div(10**18);
+            uwu.transfer(multiSigAddress, amountToClaim);
+            multiSigRewardToClaimShare = 0;
+        }
 
         if (supplyDelta_ < 0) {
             startNewCouponCycle(exchangeRate_);

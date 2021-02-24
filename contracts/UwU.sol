@@ -210,6 +210,14 @@ contract UwU is ERC20, Initializable {
     }
 
     /**
+     * @param amount The amount of tokens to convert to gons
+     * @return The gons conversation of amount
+     */
+    function amountToGons(uint256 amount) public view returns (uint256) {
+        return amount.mul(gonsPerFragment);
+    }
+
+    /**
      * @dev Transfer tokens to a specified address.
      * @param to The address to transfer to.
      * @param value The amount to be transferred.
