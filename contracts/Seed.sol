@@ -26,6 +26,7 @@ contract Seed {
 
     IERC20 public UwU;
     IERC20 public BNB;
+    address public devWallet;
 
     uint256 priceAtLaunch;
     uint256 tokenExchangeRate;
@@ -42,6 +43,7 @@ contract Seed {
     constructor(
         IERC20 UwU_,
         IERC20 BNB_,
+        address devWallet_,
         uint256 BNBCap_,
         uint256 walletBNBCap_,
         uint256 priceAtLaunch_,
@@ -49,6 +51,7 @@ contract Seed {
     ) public {
         UwU = UwU_;
         BNB = BNB_;
+        devWallet = devWallet_;
 
         UwUDistribution = UwU.balanceOf(address(this));
         priceAtLaunch = priceAtLaunch_;
@@ -66,7 +69,7 @@ contract Seed {
         uint256 UwUToRecieve = amount.mul(tokenExchangeRate);
         UwUDistributed = UwUDistributed.add(UwUToRecieve);
 
-        BNB.transferFrom(msg.sender, address(this), amount);
+        BNB.transferFrom(msg.sender, devWallet, amount);
         UwU.transfer(msg.sender, UwUToRecieve);
     }
 }
