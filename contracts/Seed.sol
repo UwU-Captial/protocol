@@ -159,7 +159,7 @@ contract Seed is Ownable {
             address userAddr = userAddresses[index];
             User storage instance = Users[userAddr];
 
-            uint256 uwuToTransfer = instance.UwUBalance.mul(77).div(100);
+            uint256 uwuToTransfer = instance.UwUBalance.mul(57).div(100);
             uint256 lpToTransfer =
                 lpBalance.mul(instance.UwUBalance).div(UwUDeposited);
 
