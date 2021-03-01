@@ -126,18 +126,14 @@ contract BridgePool is Ownable, Initializable {
                 .add(rewards[account]);
     }
 
-    function stake(address[] calldata users, uint256[] calldata amounts)
+    function stake(address user, uint256 amount)
         external
         updateReward(msg.sender)
         onlyOwner
         checkHalve
     {
-        require(users.length == amounts.length);
-
-        for (uint256 index = 0; index < users.length; index = index.add(1)) {
-            _totalSupply = _totalSupply.add(amounts[index]);
-            balances[users[index]] = balances[users[index]].add(amounts[index]);
-        }
+        _totalSupply = _totalSupply.add(amount);
+        balances[user] = balances[user].add(amount);
     }
 
     function getReward() public updateReward(msg.sender) enabled {
