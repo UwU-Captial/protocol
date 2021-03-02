@@ -73,7 +73,7 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
     uint256 public rewardPerTokenStored;
     uint256 public rewardDistributed;
 
-    address constant uniFactory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
+    address constant uniFactory = 0xd417A0A4b65D24f5eBD0898d9028D92E3592afCC;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;

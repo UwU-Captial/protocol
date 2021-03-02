@@ -46,8 +46,14 @@ contract Seed is Ownable {
     uint256 walletBNBCap;
     uint256 walletCap;
     uint256 UwUDistribution;
+
+    uint256 seedDuration;
     uint256 seedEndsAt;
-    uint256 remainingUwUDistribution;
+    bool seedEnabled;
+
+    uint256 remainingUwUDistributionDuration;
+    uint256 remainingUwUDistributionEndsAt;
+    bool remainingUwUDistributionEnabled;
 
     uint256 BNBDeposited;
     uint256 UwUDeposited;
@@ -76,7 +82,7 @@ contract Seed is Ownable {
         uint256 tokenExchangeRate_,
         uint256 UwUDistribution_,
         uint256 seedDuration_,
-        uint256 distributionTime_
+        uint256 remainingUwUDistributionDuration_
     ) public {
         UwU = UwU_;
         BNB = BNB_;
@@ -89,18 +95,27 @@ contract Seed is Ownable {
         path.push(address(BNB));
         path.push(address(BUSD));
 
+        seedDuration = seedDuration_;
+        remainingUwUDistributionDuration = remainingUwUDistributionDuration_;
+
         UwUDistribution = UwUDistribution_;
         priceAtLaunch = priceAtLaunch_;
-        seedEndsAt = block.timestamp.add(seedDuration_);
-        remainingUwUDistribution = block.timestamp.add(distributionTime_);
         BNBCap = BNBCap_;
         walletBNBCap = walletBNBCap_;
         tokenExchangeRate = tokenExchangeRate_;
     }
 
+    function startSeed() external onlyOwner {
+        require(!seedEnabled);
+        seedEndsAt = block.timestamp.add(seedDuration);
+    }
+
     function deposit(uint256 amount) external {
         require(amount != 0);
-        require(block.timestamp < seedEndsAt, "Deposit time finished");
+        require(
+            seedEnabled && block.timestamp < seedEndsAt,
+            "Deposit time finished"
+        );
 
         User storage instance = Users[msg.sender];
 
@@ -122,7 +137,7 @@ contract Seed is Ownable {
     }
 
     function swapBnbAndCreatePancakePair() external onlyOwner {
-        require(block.timestamp >= seedEndsAt);
+        require(seedEnabled && block.timestamp >= seedEndsAt);
 
         router.swapETHForExactTokens(
             150000 ether,
@@ -174,11 +189,19 @@ contract Seed is Ownable {
     }
 
     function withdrawRemainingBnB() internal {
+        remainingUwUDistributionEnabled = true;
+        remainingUwUDistributionEndsAt = block.timestamp.add(
+            remainingUwUDistributionDuration
+        );
+
         BNB.safeTransfer(devWallet, BNB.balanceOf(address(this)));
     }
 
     function transferRemainingUwU() external onlyOwner {
-        require(block.timestamp >= remainingUwUDistribution);
+        require(
+            remainingUwUDistributionEnabled &&
+                block.timestamp >= remainingUwUDistributionEndsAt
+        );
         for (
             uint256 index = 0;
             index < userAddresses.length;
