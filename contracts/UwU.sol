@@ -60,7 +60,7 @@ contract UwU is ERC20, Initializable {
     // it's fully paid.
     mapping(address => mapping(address => uint256)) public allowedFragments;
 
-    constructor() public ERC20("UwU", "UWU") {}
+    constructor() public ERC20("UwU", "UwU") {}
 
     struct DropVariables {
         uint256 debaseBridgeVal;

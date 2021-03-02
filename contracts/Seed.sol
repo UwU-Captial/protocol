@@ -44,7 +44,6 @@ contract Seed is Ownable {
     uint256 tokenExchangeRate;
     uint256 BNBCap;
     uint256 walletBNBCap;
-    uint256 walletCap;
     uint256 UwUDistribution;
 
     uint256 seedDuration;
