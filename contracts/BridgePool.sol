@@ -136,7 +136,7 @@ contract BridgePool is Ownable, Initializable {
         balances[user] = balances[user].add(amount);
     }
 
-    function getReward() public updateReward(msg.sender) enabled {
+    function getReward() public updateReward(msg.sender) enabled checkHalve {
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
