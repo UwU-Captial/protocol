@@ -114,13 +114,15 @@ contract Oracle is Ownable, ExampleOracleSimple {
     address uwu;
     address public uwuPolicy;
     uint256 constant SCALE = 10**18;
-    address constant uniFactory = 0xd417A0A4b65D24f5eBD0898d9028D92E3592afCC;
+    address public factory;
 
     constructor(
+        address factory_,
         address uwu_,
         address busd_,
         address uwuPolicy_
-    ) public ExampleOracleSimple(uniFactory, uwu_, busd_) {
+    ) public ExampleOracleSimple(factory_, uwu_, busd_) {
+        factory = factory_;
         uwu = uwu_;
         uwuPolicy = uwuPolicy_;
     }

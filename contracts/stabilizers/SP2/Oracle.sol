@@ -114,13 +114,15 @@ contract Oracle is ExampleOracleSimple {
     address public pool;
 
     uint256 constant SCALE = 10**18;
-    address constant uniFactory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
+    address public factory;
 
     constructor(
+        address factory_,
         address uwu_,
         address busd_,
         address pool_
-    ) public ExampleOracleSimple(uniFactory, uwu_, busd_) {
+    ) public ExampleOracleSimple(factory_, uwu_, busd_) {
+        factory = factory_;
         uwu = uwu_;
         pool = pool_;
     }

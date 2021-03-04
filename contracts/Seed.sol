@@ -20,14 +20,14 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 import "./interfaces/IUwU.sol";
 
-contract Seed is Ownable {
+contract Seed is Ownable, Initializable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -68,7 +68,7 @@ contract Seed is Ownable {
     address[] public userAddresses;
     mapping(address => User) Users;
 
-    constructor(
+    function initialize(
         IUwU UwU_,
         IERC20 BNB_,
         IERC20 BUSD_,
@@ -79,10 +79,9 @@ contract Seed is Ownable {
         uint256 walletBNBCap_,
         uint256 priceAtLaunch_,
         uint256 tokenExchangeRate_,
-        uint256 UwUDistribution_,
         uint256 seedDuration_,
         uint256 remainingUwUDistributionDuration_
-    ) public {
+    ) external initializer {
         UwU = UwU_;
         BNB = BNB_;
         BUSD = BUSD_;
@@ -97,7 +96,7 @@ contract Seed is Ownable {
         seedDuration = seedDuration_;
         remainingUwUDistributionDuration = remainingUwUDistributionDuration_;
 
-        UwUDistribution = UwUDistribution_;
+        UwUDistribution = UwU.balanceOf(address(this));
         priceAtLaunch = priceAtLaunch_;
         BNBCap = BNBCap_;
         walletBNBCap = walletBNBCap_;

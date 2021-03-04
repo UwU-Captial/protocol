@@ -7,16 +7,16 @@ import UnUPolicyArtifact from '../artifacts/contracts/UwUPolicy.sol/UwUPolicy.js
 import OrchestratorArtifact from '../artifacts/contracts/Orchestrator.sol/Orchestrator.json';
 import BridgePoolArtifact from '../artifacts/contracts/BridgePool.sol/BridgePool.json';
 import MiningPoolArtifact from '../artifacts/contracts/MiningPool.sol/MiningPool.json';
-import TimelockArtifact from '../artifacts/contracts/Timelock.sol/Timelock.json';
 import OracleArtifact from '../artifacts/contracts/Oracle.sol/Oracle.json';
 import IUniswapV2FactoryArtifact from '../artifacts/@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol/IUniswapV2Factory.json';
 import IUniswapV2Router02Artifact from '../artifacts/@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol/IUniswapV2Router02.json';
 import TokenArtifact from '../artifacts/contracts/mock/Token.sol/Token.json';
+import SeedFactoryArtifact from '../artifacts/contracts/Seed.sol/Seed.json';
 
+import { SeedFactory } from '../type/SeedFactory';
 import { BridgePoolFactory } from '../type/BridgePoolFactory';
 import { MiningPoolFactory } from '../type/MiningPoolFactory';
 import { OrchestratorFactory } from '../type/OrchestratorFactory';
-import { TimelockFactory } from '../type/TimelockFactory';
 import { UwUFactory } from '../type/UwUFactory';
 import { UwUPolicyFactory } from '../type/UwUPolicyFactory';
 import { TokenFactory } from '../type/TokenFactory';
@@ -34,15 +34,14 @@ async function main() {
 		bnb: '',
 		busd: '',
 		uwu: '',
-		uwuBnbLp: '',
 		uwuPolicy: '',
-		timelock: '',
+		orchestrator: '',
+		seed: '',
 		debaseBridgePool: '',
 		debaseEthBridgePool: '',
 		uwuMiningPool: '',
-		orchestrator: '',
+		uwuBnbLp: '',
 		oracle: '',
-		seed: ''
 	};
 
 	////////////////////////
@@ -56,12 +55,6 @@ async function main() {
 			OrchestratorArtifact.bytecode,
 			signer[0]
 		) as any) as OrchestratorFactory;
-
-		const timeLockFactory = (new ethers.ContractFactory(
-			TimelockArtifact.abi,
-			TimelockArtifact.bytecode,
-			signer[0]
-		) as any) as TimelockFactory;
 
 		const miningPoolFactory = (new ethers.ContractFactory(
 			MiningPoolArtifact.abi,
@@ -117,15 +110,21 @@ async function main() {
 			signer[0]
 		) as IUniswapV2Router02;
 
+		const seedFactory = (new ethers.ContractFactory(
+			SeedFactoryArtifact.abi,
+			SeedFactoryArtifact.bytecode,
+			signer[0]
+		) as any) as SeedFactory;
+
 		const bnb = await bnbFactory.deploy('BNB', 'BNB');
 		const busd = await busdFactory.deploy('BUSD', 'BUSD');
 		const orchestrator = await orchestratorFactory.deploy();
 		const uwuPolicy = await uwuPolicyFactory.deploy();
 		const uwu = await uwuFactory.deploy();
-		const timelock = await timeLockFactory.deploy();
 		const debaseBridgePool = await bridgePoolFactory.deploy();
 		const debaseEthBridgePool = await bridgePoolFactory.deploy();
 		const uwuMiningPool = await miningPoolFactory.deploy();
+		const seed = await seedFactory.deploy()
 
 		let tx = await bnb.approve(router.address, parseEther('100'));
 		await tx.wait(1);
@@ -145,6 +144,7 @@ async function main() {
 		await tx.wait(1);
 
 		await orchestrator.initialize(
+			factory.address,
 			uwu.address,
 			uwuPolicy.address,
 			debaseBridgePool.address,
@@ -155,19 +155,16 @@ async function main() {
 		);
 
 		await uwuPolicy.initialize(uwu.address, orchestrator.address);
-		await timelock.initialize(account);
-		await debaseBridgePool.initialize(uwu.address, 60 * 60 * 3);
-		await debaseEthBridgePool.initialize(uwu.address, 60 * 60 * 3);
 
 		contractAddresses.uwu = uwu.address;
 		contractAddresses.uwuPolicy = uwuPolicy.address;
 		contractAddresses.bnb = bnb.address;
 		contractAddresses.busd = busd.address;
 		contractAddresses.orchestrator = orchestrator.address;
-		contractAddresses.timelock = timelock.address;
 		contractAddresses.debaseBridgePool = debaseBridgePool.address;
 		contractAddresses.debaseEthBridgePool = debaseEthBridgePool.address;
 		contractAddresses.uwuMiningPool = uwuMiningPool.address;
+		contractAddresses.seed = seed.address
 
 		const data = JSON.stringify(contractAddresses);
 		await promises.writeFile('contracts.json', data);

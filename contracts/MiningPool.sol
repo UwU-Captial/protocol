@@ -58,7 +58,7 @@ contract LPTokenWrapper {
     }
 }
 
-contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
+contract MiningPool is Ownable, LPTokenWrapper, ReentrancyGuard, Initializable {
     using Address for address;
 
     IERC20 public rewardToken;
@@ -73,7 +73,7 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
     uint256 public rewardPerTokenStored;
     uint256 public rewardDistributed;
 
-    address constant uniFactory = 0xd417A0A4b65D24f5eBD0898d9028D92E3592afCC;
+    address public factory;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
@@ -113,7 +113,7 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
     // https://uniswap.org/docs/v2/smart-contract-integration/getting-pair-addresses/
     function genUniAddr(address left, address right)
         internal
-        pure
+        view
         returns (address)
     {
         address first = left < right ? left : right;
@@ -124,7 +124,7 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
                     keccak256(
                         abi.encodePacked(
                             hex"ff",
-                            uniFactory,
+                            factory,
                             keccak256(abi.encodePacked(first, second)),
                             hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
                         )
@@ -137,16 +137,18 @@ contract MiningPool is Ownable, Initializable, LPTokenWrapper, ReentrancyGuard {
     function initialize(
         address rewardToken_,
         address pairToken_,
+        address factory_,
         uint256 duration_
-    ) public initializer {
+    ) external initializer {
         setStakeToken(genUniAddr(rewardToken_, pairToken_));
         rewardToken = IERC20(rewardToken_);
+        factory = factory_;
 
         maxReward = rewardToken.balanceOf(address(this));
         duration = duration_;
     }
 
-    function startPool() external {
+    function startPool() external onlyOwner {
         require(!poolEnabled, "Pool can only be started once");
 
         poolEnabled = true;

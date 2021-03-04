@@ -78,7 +78,7 @@ contract BridgePool is Ownable, Initializable {
     }
 
     function initialize(address rewardToken_, uint256 duration_)
-        public
+        external
         initializer
     {
         rewardToken = IERC20(rewardToken_);
@@ -86,7 +86,7 @@ contract BridgePool is Ownable, Initializable {
         duration = duration_;
     }
 
-    function startPool() external {
+    function startPool() external onlyOwner {
         require(!poolEnabled, "Pool can only be started once");
         poolEnabled = true;
         startNewDistribtionCycle(maxReward.mul(50).div(100));

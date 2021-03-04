@@ -47,7 +47,7 @@ contract Orchestrator is Ownable, Initializable {
     event LogAddNewUniPair(address token1, address token2);
 
     uint256 constant SYNC_GAS = 50000;
-    address constant uniFactory = 0xd417A0A4b65D24f5eBD0898d9028D92E3592afCC;
+    address public factory;
 
     struct UniPair {
         bool enabled;
@@ -67,7 +67,7 @@ contract Orchestrator is Ownable, Initializable {
     // https://uniswap.org/docs/v2/smart-contract-integration/getting-pair-addresses/
     function genUniAddr(address left, address right)
         internal
-        pure
+        view
         returns (IUniswapV2Pair)
     {
         address first = left < right ? left : right;
@@ -78,7 +78,7 @@ contract Orchestrator is Ownable, Initializable {
                     keccak256(
                         abi.encodePacked(
                             hex"ff",
-                            uniFactory,
+                            factory,
                             keccak256(abi.encodePacked(first, second)),
                             hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
                         )
@@ -89,6 +89,7 @@ contract Orchestrator is Ownable, Initializable {
     }
 
     function initialize(
+        address factory_,
         address uwu_,
         address uwuPolicy_,
         IPool debaseBridgePool_,
@@ -97,6 +98,7 @@ contract Orchestrator is Ownable, Initializable {
         uint256 rebaseRequiredSupply_,
         uint256 oracleStartTimeOffset
     ) external initializer {
+        factory = factory_;
         uwu = IUwU(uwu_);
         uwuPolicy = IUwUPolicy(uwuPolicy_);
 
