@@ -55,7 +55,7 @@ contract Seed is Ownable, Initializable {
     bool public remainingUwUDistributionEnabled;
 
     uint256 public BNBDeposited;
-    uint256 public UwUDeposited;
+    uint256 public UwUDistributed;
 
     address[] path;
 
@@ -128,9 +128,8 @@ contract Seed is Ownable, Initializable {
         instance.BNBBalance = currentBNBBalance;
         BNBDeposited = BNBDeposited.add((amount));
 
-        uint256 UwUToRecieve = amount.mul(tokenExchangeRate);
+        uint256 UwUToRecieve = amount.mul(tokenExchangeRate).div(1 ether);
         instance.UwUBalance = instance.UwUBalance.add(UwUToRecieve);
-        UwUDeposited = UwUDeposited.add(UwUToRecieve);
 
         BNB.transferFrom(msg.sender, address(this), amount);
     }
@@ -175,11 +174,12 @@ contract Seed is Ownable, Initializable {
 
             uint256 uwuToTransfer = instance.UwUBalance.mul(57).div(100);
             uint256 lpToTransfer =
-                lpBalance.mul(instance.UwUBalance).div(UwUDeposited);
+                lpBalance.mul(instance.BNBBalance).div(BNBDeposited);
 
             instance.UwUBalance = instance.UwUBalance.sub(uwuToTransfer);
             instance.LpSent = lpToTransfer;
 
+            UwUDistributed = UwUDistributed.add(uwuToTransfer);
             UwU.transfer(userAddr, uwuToTransfer);
             pair.transfer(userAddr, lpToTransfer);
         }
@@ -212,6 +212,7 @@ contract Seed is Ownable, Initializable {
             uint256 amountToTransfer = instance.UwUBalance;
             instance.UwUBalance = 0;
 
+            UwUDistributed = UwUDistributed.add(amountToTransfer);
             UwU.transfer(userAddr, amountToTransfer);
         }
     }
