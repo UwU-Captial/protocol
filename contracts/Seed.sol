@@ -105,6 +105,7 @@ contract Seed is Ownable, Initializable {
 
     function startSeed() external onlyOwner {
         require(!seedEnabled);
+        seedEnabled = true;
         seedEndsAt = block.timestamp.add(seedDuration);
     }
 

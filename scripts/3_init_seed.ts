@@ -2,8 +2,6 @@ import { ethers } from 'hardhat';
 
 import SeedArtifact from '../artifacts/contracts/Seed.sol/Seed.json';
 import IUniswapV2PairArtifact from '../artifacts/@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol/IUniswapV2Pair.json';
-import ERC20Artifact from '../artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json';
-import { Erc20 } from '../type/Erc20';
 import { IUniswapV2Pair } from '../type/IUniswapV2Pair';
 
 import { formatEther, parseEther } from 'ethers/lib/utils';
@@ -34,10 +32,10 @@ async function main() {
 		const resData = await uniswapV2Pair.getReserves();
 		let currentPrice: BigNumber;
 
-		if (uniswapV2Pair.token0 == dataParse['bnb']) {
-			currentPrice = resData.reserve0.mul(scale).div(resData.reserve1);
-		} else {
+		if ((await uniswapV2Pair.token0()) == dataParse['bnb']) {
 			currentPrice = resData.reserve1.mul(scale).div(resData.reserve0);
+		} else {
+			currentPrice = resData.reserve0.mul(scale).div(resData.reserve1);
 		}
 
 		const bnbCap = seedCap.mul(scale).div(currentPrice);
