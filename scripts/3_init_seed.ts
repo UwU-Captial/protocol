@@ -9,6 +9,7 @@ import { IUniswapV2Pair } from '../type/IUniswapV2Pair';
 import { formatEther, parseEther } from 'ethers/lib/utils';
 import { promises } from 'fs';
 import { Seed } from '../type/Seed';
+import { BigNumber } from 'ethers';
 
 async function main() {
 	const signer = await ethers.getSigners();
@@ -31,8 +32,14 @@ async function main() {
 			signer[0]
 		) as IUniswapV2Pair;
 		const resData = await uniswapV2Pair.getReserves();
+		let currentPrice: BigNumber;
 
-		const currentPrice = resData.reserve0.mul(scale).div(resData.reserve1);
+		if (uniswapV2Pair.token0 == dataParse['bnb']) {
+			currentPrice = resData.reserve0.mul(scale).div(resData.reserve1);
+		} else {
+			currentPrice = resData.reserve1.mul(scale).div(resData.reserve0);
+		}
+
 		const bnbCap = seedCap.mul(scale).div(currentPrice);
 		const walletCap = bnbCap.mul(walletCapPercentage).div(100);
 		const tokenExchangeRate = uwuDistribution.mul(scale).div(bnbCap);

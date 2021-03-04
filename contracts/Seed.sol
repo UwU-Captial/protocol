@@ -114,7 +114,7 @@ contract Seed is Ownable, Initializable {
             seedEnabled && block.timestamp < seedEndsAt,
             "Deposit time finished"
         );
-
+        require(BNBDeposited.add(amount) <= BNBCap);
         User storage instance = Users[msg.sender];
 
         if (instance.BNBBalance == 0) {
