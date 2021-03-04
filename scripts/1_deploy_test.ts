@@ -45,6 +45,11 @@ async function main() {
 		seed: ''
 	};
 
+	////////////////////////
+	/////////////////////////////
+	// Remember about that uni factory
+	///////////////////////////////
+
 	try {
 		const orchestratorFactory = (new ethers.ContractFactory(
 			OrchestratorArtifact.abi,
