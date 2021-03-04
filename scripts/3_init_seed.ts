@@ -18,10 +18,6 @@ async function main() {
 		let data = await promises.readFile('contracts.json', 'utf-8');
 		let dataParse = JSON.parse(data.toString());
 
-		const uwu = ((await ethers.getContractAt(ERC20Artifact.abi, dataParse['uwu'], signer[0])) as any) as Erc20;
-		const bnb = ((await ethers.getContractAt(ERC20Artifact.abi, dataParse['bnb'], signer[0])) as any) as Erc20;
-		const busd = ((await ethers.getContractAt(ERC20Artifact.abi, dataParse['busd'], signer[0])) as any) as Erc20;
-
 		const uwuDistribution = parseEther('20000');
 		const seedCap = parseEther('1000000');
 		const walletCapPercentage = 5;
@@ -48,12 +44,12 @@ async function main() {
 			formatEther(tokenExchangeRate)
 		);
 
-		const seed = ((await ethers.getContractAt(SeedArtifact.abi, dataParse['uwu'], signer[0])) as any) as Seed;
+		const seed = ((await ethers.getContractAt(SeedArtifact.abi, dataParse['seed'], signer[0])) as any) as Seed;
 
 		await seed.initialize(
-			uwu.address,
-			bnb.address,
-			busd.address,
+			dataParse['uwu'],
+			dataParse['bnb'],
+			dataParse['busd'],
 			dataParse['factory'],
 			dataParse['router'],
 			account,

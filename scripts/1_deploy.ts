@@ -120,18 +120,18 @@ async function main() {
 		const uwuMiningPool = await miningPoolFactory.deploy();
 		const seed = await seedFactory.deploy();
 
-		let tx = await bnb.approve(router.address, parseEther('100'));
+		let tx = await bnb.approve(router.address, parseEther('500000'));
 		await tx.wait(1);
-		tx = await busd.approve(router.address, parseEther('10000'));
+		tx = await busd.approve(router.address, parseEther('1000000'));
 		await tx.wait(1);
 
 		tx = await router.addLiquidity(
 			bnb.address,
 			busd.address,
-			parseEther('100'),
-			parseEther('10000'),
-			parseEther('100'),
-			parseEther('10000'),
+			parseEther('500000'),
+			parseEther('1000000'),
+			parseEther('500000'),
+			parseEther('1000000'),
 			account,
 			1624604055
 		);

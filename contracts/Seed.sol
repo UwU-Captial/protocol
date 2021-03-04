@@ -39,23 +39,23 @@ contract Seed is Ownable, Initializable {
     IUniswapV2Pair public pair;
     address public devWallet;
 
-    uint256 lpBalance;
-    uint256 priceAtLaunch;
-    uint256 tokenExchangeRate;
-    uint256 BNBCap;
-    uint256 walletBNBCap;
-    uint256 UwUDistribution;
+    uint256 public lpBalance;
+    uint256 public priceAtLaunch;
+    uint256 public tokenExchangeRate;
+    uint256 public BNBCap;
+    uint256 public walletBNBCap;
+    uint256 public UwUDistribution;
 
-    uint256 seedDuration;
-    uint256 seedEndsAt;
-    bool seedEnabled;
+    uint256 public seedDuration;
+    uint256 public seedEndsAt;
+    bool public seedEnabled;
 
-    uint256 remainingUwUDistributionDuration;
-    uint256 remainingUwUDistributionEndsAt;
-    bool remainingUwUDistributionEnabled;
+    uint256 public remainingUwUDistributionDuration;
+    uint256 public remainingUwUDistributionEndsAt;
+    bool public remainingUwUDistributionEnabled;
 
-    uint256 BNBDeposited;
-    uint256 UwUDeposited;
+    uint256 public BNBDeposited;
+    uint256 public UwUDeposited;
 
     address[] path;
 
@@ -66,7 +66,7 @@ contract Seed is Ownable, Initializable {
     }
 
     address[] public userAddresses;
-    mapping(address => User) Users;
+    mapping(address => User) public Users;
 
     function initialize(
         IUwU UwU_,
