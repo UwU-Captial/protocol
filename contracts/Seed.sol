@@ -135,7 +135,10 @@ contract Seed is Ownable, Initializable {
     }
 
     function swapBnbAndCreatePancakePair() external onlyOwner {
-        require(seedEnabled && block.timestamp >= seedEndsAt);
+        require(
+            seedEnabled &&
+                (BNBDeposited == BNBCap || block.timestamp >= seedEndsAt)
+        );
 
         router.swapETHForExactTokens(
             150000 ether,
