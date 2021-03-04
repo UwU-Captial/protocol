@@ -1,6 +1,4 @@
 import { ethers } from 'hardhat';
-import { parseEther, parseUnits } from 'ethers/lib/utils';
-import { BigNumber } from 'ethers';
 
 import SeedArtifact from '../artifacts/contracts/Seed.sol/Seed.json';
 import { Seed } from '../type/Seed';
@@ -9,7 +7,6 @@ import { promises } from 'fs';
 
 async function main() {
 	const signer = await ethers.getSigners();
-	const account = await signer[0].getAddress();
 
 	try {
 		let data = await promises.readFile('contracts.json', 'utf-8');

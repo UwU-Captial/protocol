@@ -1,6 +1,5 @@
 import { ethers } from 'hardhat';
-import { parseEther, parseUnits } from 'ethers/lib/utils';
-import { BigNumber } from 'ethers';
+import { parseEther } from 'ethers/lib/utils';
 
 import UwUArtifact from '../artifacts/contracts/UwU.sol/UwU.json';
 import UnUPolicyArtifact from '../artifacts/contracts/UwUPolicy.sol/UwUPolicy.json';
@@ -8,7 +7,6 @@ import OrchestratorArtifact from '../artifacts/contracts/Orchestrator.sol/Orches
 import BridgePoolArtifact from '../artifacts/contracts/BridgePool.sol/BridgePool.json';
 import MiningPoolArtifact from '../artifacts/contracts/MiningPool.sol/MiningPool.json';
 import OracleArtifact from '../artifacts/contracts/Oracle.sol/Oracle.json';
-import IUniswapV2FactoryArtifact from '../artifacts/@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol/IUniswapV2Factory.json';
 import IUniswapV2Router02Artifact from '../artifacts/@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol/IUniswapV2Router02.json';
 import TokenArtifact from '../artifacts/contracts/mock/Token.sol/Token.json';
 import SeedFactoryArtifact from '../artifacts/contracts/Seed.sol/Seed.json';
@@ -21,7 +19,6 @@ import { UwUFactory } from '../type/UwUFactory';
 import { UwUPolicyFactory } from '../type/UwUPolicyFactory';
 import { TokenFactory } from '../type/TokenFactory';
 import { OracleFactory } from '../type/OracleFactory';
-import { IUniswapV2Factory } from '../type/IUniswapV2Factory';
 import { IUniswapV2Router02 } from '../type/IUniswapV2Router02';
 
 import { promises } from 'fs';
@@ -31,8 +28,11 @@ async function main() {
 	const account = await signer[0].getAddress();
 
 	let contractAddresses = {
+		factory: '0xd417a0a4b65d24f5ebd0898d9028d92e3592afcc',
+		router: '0x07d090e7fcbc6afaa507a3441c7c5ee507c457e6',
 		bnb: '',
 		busd: '',
+		bnbBusdLp: '',
 		uwu: '',
 		uwuPolicy: '',
 		orchestrator: '',
@@ -40,16 +40,16 @@ async function main() {
 		debaseBridgePool: '',
 		debaseEthBridgePool: '',
 		uwuMiningPool: '',
-		uwuBnbLp: '',
-		oracle: '',
+		uwuBusdLp: '',
+		oracle: ''
 	};
 
-	////////////////////////
-	/////////////////////////////
-	// Remember about that uni factory
-	///////////////////////////////
-
 	try {
+		////////////////////////
+		/////////////////////////////
+		// Remember about that uni factory
+		///////////////////////////////
+
 		const orchestratorFactory = (new ethers.ContractFactory(
 			OrchestratorArtifact.abi,
 			OrchestratorArtifact.bytecode,
@@ -98,14 +98,8 @@ async function main() {
 			signer[0]
 		) as any) as UwUFactory;
 
-		const factory = new ethers.Contract(
-			'0xd417a0a4b65d24f5ebd0898d9028d92e3592afcc',
-			IUniswapV2FactoryArtifact.abi,
-			signer[0]
-		) as IUniswapV2Factory;
-
 		const router = new ethers.Contract(
-			'0x07d090e7fcbc6afaa507a3441c7c5ee507c457e6',
+			contractAddresses.router,
 			IUniswapV2Router02Artifact.abi,
 			signer[0]
 		) as IUniswapV2Router02;
@@ -124,7 +118,7 @@ async function main() {
 		const debaseBridgePool = await bridgePoolFactory.deploy();
 		const debaseEthBridgePool = await bridgePoolFactory.deploy();
 		const uwuMiningPool = await miningPoolFactory.deploy();
-		const seed = await seedFactory.deploy()
+		const seed = await seedFactory.deploy();
 
 		let tx = await bnb.approve(router.address, parseEther('100'));
 		await tx.wait(1);
@@ -144,7 +138,7 @@ async function main() {
 		await tx.wait(1);
 
 		await orchestrator.initialize(
-			factory.address,
+			contractAddresses.factory,
 			uwu.address,
 			uwuPolicy.address,
 			debaseBridgePool.address,
@@ -164,7 +158,7 @@ async function main() {
 		contractAddresses.debaseBridgePool = debaseBridgePool.address;
 		contractAddresses.debaseEthBridgePool = debaseEthBridgePool.address;
 		contractAddresses.uwuMiningPool = uwuMiningPool.address;
-		contractAddresses.seed = seed.address
+		contractAddresses.seed = seed.address;
 
 		const data = JSON.stringify(contractAddresses);
 		await promises.writeFile('contracts.json', data);

@@ -109,7 +109,7 @@ contract ExampleOracleSimple {
     }
 }
 
-contract Oracle is ExampleOracleSimple {
+contract CouponOracle is ExampleOracleSimple {
     address public uwu;
     address public pool;
 
