@@ -147,8 +147,6 @@ contract Seed is Ownable, Initializable {
             block.timestamp.add(20 minutes)
         );
 
-        pair = IUniswapV2Pair(factory.createPair(address(UwU), address(BUSD)));
-
         uint256 amount1;
         uint256 amount2;
 
@@ -162,6 +160,9 @@ contract Seed is Ownable, Initializable {
             address(this),
             block.timestamp.add(20 minutes)
         );
+
+        pair = IUniswapV2Pair(factory.getPair(address(UwU), address(BUSD)));
+
 
         transferTokensAndLps();
     }
