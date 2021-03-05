@@ -24,7 +24,6 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-
 import "./interfaces/IUwU.sol";
 
 contract Seed is Ownable, Initializable {
@@ -123,7 +122,7 @@ contract Seed is Ownable, Initializable {
         }
 
         uint256 currentBNBBalance = instance.BNBBalance.add(amount);
-        require(currentBNBBalance <= walletBNBCap, "Deposit Over Cap");
+        //require(currentBNBBalance <= walletBNBCap, "Deposit Over Cap");
 
         instance.BNBBalance = currentBNBBalance;
         BNBDeposited = BNBDeposited.add((amount));
@@ -139,9 +138,11 @@ contract Seed is Ownable, Initializable {
             seedEnabled &&
                 (BNBDeposited == BNBCap || block.timestamp >= seedEndsAt)
         );
-
-        router.swapETHForExactTokens(
+        
+        BNB.approve(address(router), BNBDeposited);
+        router.swapTokensForExactTokens(
             150000 ether,
+            BNBDeposited,
             path,
             address(this),
             block.timestamp.add(20 minutes)
@@ -150,19 +151,21 @@ contract Seed is Ownable, Initializable {
         uint256 amount1;
         uint256 amount2;
 
+        UwU.approve(address(router), 4000 ether);
+        BUSD.approve(address(router), 150000 ether);
+
         (amount1, amount2, lpBalance) = router.addLiquidity(
             address(UwU),
             address(BUSD),
-            40000 ether,
+            4000 ether,
             150000 ether,
-            40000 ether,
+            4000 ether,
             150000 ether,
             address(this),
             block.timestamp.add(20 minutes)
         );
 
         pair = IUniswapV2Pair(factory.getPair(address(UwU), address(BUSD)));
-
 
         transferTokensAndLps();
     }

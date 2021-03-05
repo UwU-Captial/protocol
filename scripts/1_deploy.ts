@@ -8,12 +8,14 @@ import BridgePoolArtifact from '../artifacts/contracts/BridgePool.sol/BridgePool
 import MiningPoolArtifact from '../artifacts/contracts/MiningPool.sol/MiningPool.json';
 import OracleArtifact from '../artifacts/contracts/Oracle.sol/Oracle.json';
 import IUniswapV2Router02Artifact from '../artifacts/@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol/IUniswapV2Router02.json';
+import FactoryArtifact from '../artifacts/@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol/IUniswapV2Factory.json';
 import TokenArtifact from '../artifacts/contracts/mock/Token.sol/Token.json';
 import SeedFactoryArtifact from '../artifacts/contracts/Seed.sol/Seed.json';
 
 import { SeedFactory } from '../type/SeedFactory';
 import { BridgePoolFactory } from '../type/BridgePoolFactory';
 import { MiningPoolFactory } from '../type/MiningPoolFactory';
+import { IUniswapV2Factory } from '../type/IUniswapV2Factory';
 import { OrchestratorFactory } from '../type/OrchestratorFactory';
 import { UwUFactory } from '../type/UwUFactory';
 import { UwUPolicyFactory } from '../type/UwUPolicyFactory';
@@ -28,8 +30,8 @@ async function main() {
 	const account = await signer[0].getAddress();
 
 	let contractAddresses = {
-		factory: '0xd417a0a4b65d24f5ebd0898d9028d92e3592afcc',
-		router: '0x07d090e7fcbc6afaa507a3441c7c5ee507c457e6',
+		factory: '0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f',
+		router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
 		bnb: '',
 		busd: '',
 		bnbBusdLp: '',
@@ -104,6 +106,12 @@ async function main() {
 			signer[0]
 		) as IUniswapV2Router02;
 
+		const factory = new ethers.Contract(
+			contractAddresses.factory,
+			FactoryArtifact.abi,
+			signer[0]
+		) as IUniswapV2Factory;
+
 		const seedFactory = (new ethers.ContractFactory(
 			SeedFactoryArtifact.abi,
 			SeedFactoryArtifact.bytecode,
@@ -120,22 +128,24 @@ async function main() {
 		const uwuMiningPool = await miningPoolFactory.deploy();
 		const seed = await seedFactory.deploy();
 
-		let tx = await bnb.approve(router.address, parseEther('500000'));
+		let tx = await bnb.approve(router.address, parseEther('50000000'));
 		await tx.wait(1);
-		tx = await busd.approve(router.address, parseEther('1000000'));
+		tx = await busd.approve(router.address, parseEther('60000000'));
 		await tx.wait(1);
 
 		tx = await router.addLiquidity(
 			bnb.address,
 			busd.address,
-			parseEther('500000'),
-			parseEther('1000000'),
-			parseEther('500000'),
-			parseEther('1000000'),
+			parseEther('50000000'),
+			parseEther('60000000'),
+			parseEther('50000000'),
+			parseEther('60000000'),
 			account,
 			1624604055
 		);
 		await tx.wait(1);
+
+		let pair = await factory.getPair(bnb.address, busd.address);
 
 		await orchestrator.initialize(
 			contractAddresses.factory,
@@ -159,6 +169,7 @@ async function main() {
 		contractAddresses.debaseEthBridgePool = debaseEthBridgePool.address;
 		contractAddresses.uwuMiningPool = uwuMiningPool.address;
 		contractAddresses.seed = seed.address;
+		contractAddresses.bnbBusdLp = pair;
 
 		const data = JSON.stringify(contractAddresses);
 		await promises.writeFile('contracts.json', data);

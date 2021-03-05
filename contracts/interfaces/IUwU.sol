@@ -31,6 +31,8 @@ interface IUwU {
         external
         returns (uint256);
 
+    function approve(address spender, uint256 value) external returns(bool);
+
     function transfer(address to, uint256 value) external returns (bool);
 
     function transferFrom(
