@@ -122,7 +122,7 @@ contract Seed is Ownable, Initializable {
         }
 
         uint256 currentBNBBalance = instance.BNBBalance.add(amount);
-        //require(currentBNBBalance <= walletBNBCap, "Deposit Over Cap");
+        require(currentBNBBalance <= walletBNBCap, "Deposit Over Cap");
 
         instance.BNBBalance = currentBNBBalance;
         BNBDeposited = BNBDeposited.add((amount));
@@ -138,7 +138,7 @@ contract Seed is Ownable, Initializable {
             seedEnabled &&
                 (BNBDeposited == BNBCap || block.timestamp >= seedEndsAt)
         );
-        
+
         BNB.approve(address(router), BNBDeposited);
         router.swapTokensForExactTokens(
             150000 ether,
@@ -166,14 +166,18 @@ contract Seed is Ownable, Initializable {
         );
 
         pair = IUniswapV2Pair(factory.getPair(address(UwU), address(BUSD)));
-
-        transferTokensAndLps();
     }
 
-    function transferTokensAndLps() internal {
+    function transferTokensAndLps(uint256 lowerIndex, uint256 higherIndex)
+        external
+        onlyOwner
+    {
+        require(address(pair) != address(0));
+        require(higherIndex < userAddresses.length);
+
         for (
-            uint256 index = 0;
-            index < userAddresses.length;
+            uint256 index = lowerIndex;
+            index <= higherIndex;
             index = index.add(1)
         ) {
             address userAddr = userAddresses[index];
@@ -190,11 +194,9 @@ contract Seed is Ownable, Initializable {
             UwU.transfer(userAddr, uwuToTransfer);
             pair.transfer(userAddr, lpToTransfer);
         }
-
-        withdrawRemainingBnB();
     }
 
-    function withdrawRemainingBnB() internal {
+    function withdrawRemainingBnB() external onlyOwner {
         remainingUwUDistributionEnabled = true;
         remainingUwUDistributionEndsAt = block.timestamp.add(
             remainingUwUDistributionDuration
