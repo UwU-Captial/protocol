@@ -11,6 +11,7 @@ import "../../lib/SafeMathInt.sol";
 import "../../interfaces/IUwU.sol";
 import "../../interfaces/IUwUPolicy.sol";
 import "../../interfaces/IOracle.sol";
+import "./Curve.sol";
 
 contract Params is Ownable, Initializable {
     using SafeERC20 for IERC20;
@@ -45,6 +46,7 @@ contract Params is Ownable, Initializable {
 
     uint256 internal constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
 
+    Curve public curve;
     // Address of the uwu policy/reward contract
     IUwUPolicy public policy;
     // Address of the uwu token
@@ -379,6 +381,7 @@ contract Params is Ownable, Initializable {
         IUwU uwu_,
         IOracle oracle_,
         IUwUPolicy policy_,
+        Curve curve_,
         address burnPool1_,
         address burnPool2_,
         uint256 epochs_,
@@ -396,6 +399,7 @@ contract Params is Ownable, Initializable {
         burnPool2 = burnPool2_;
         policy = policy_;
         oracle = oracle_;
+        curve = curve_;
 
         epochs = epochs_;
         curveShifter = curveShifter_;

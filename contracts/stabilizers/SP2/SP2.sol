@@ -16,12 +16,11 @@
 */
 pragma solidity >=0.6.6;
 
-import "./Curve.sol";
 import "./CouponRewards.sol";
 import "./DepositRewards.sol";
 import "./Params.sol";
 
-contract SP2 is Params, CouponRewards, DepositRewards, Curve {
+contract SP2 is Params, CouponRewards, DepositRewards {
     event LogStartNewDepositDistributionCycle(
         uint256 depositShareAdded_,
         uint256 rewardRate_,
@@ -197,7 +196,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
 
         // Scale reward percentage in relation curve value
         uint256 uwuShareToBeRewarded =
-            bytes16ToUnit256(curveValue, instance.uwuPerEpoch);
+            curve.bytes16ToUnit256(curveValue, instance.uwuPerEpoch);
 
         // Claim multi sig reward in relation to scaled uwu reward
         uint256 multiSigRewardToClaimShare =
@@ -285,7 +284,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
 
             // Use the offset to get the current curve value
             bytes16 value =
-                getCurveValue(
+                curve.getCurveValue(
                     offset,
                     mean,
                     oneDivDeviationSqrtTwoPi,
@@ -294,7 +293,7 @@ contract SP2 is Params, CouponRewards, DepositRewards, Curve {
 
             // Expansion percentage is scaled in relation to the value
             uint256 expansionPercentageScaled =
-                bytes16ToUnit256(value, expansionPercentage).add(10**18);
+                curve.bytes16ToUnit256(value, expansionPercentage).add(10**18);
 
             // On our first positive rebase rewardsAccrued rebase will be the expansion percentage
             if (rewardsAccrued == 0) {

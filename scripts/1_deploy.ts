@@ -30,8 +30,8 @@ async function main() {
 	const account = await signer[0].getAddress();
 
 	let contractAddresses = {
-		factory: '0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f',
-		router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+		factory: '0xd417a0a4b65d24f5ebd0898d9028d92e3592afcc',
+		router: '0x07d090e7fcbc6afaa507a3441c7c5ee507c457e6',
 		bnb: '',
 		busd: '',
 		bnbBusdLp: '',

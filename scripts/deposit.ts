@@ -21,7 +21,7 @@ async function main() {
 
 		await bnb.approve(seed.address, amount);
 		await seed.deposit(amount);
-		await seed.swapBnbAndCreatePancakePair();
+		// await seed.swapBnbAndCreatePancakePair();
 	} catch (error) {
 		console.error(error);
 	}
