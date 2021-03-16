@@ -15,9 +15,9 @@ async function main() {
 		await uwu.initialize(
 			dataParse['debaseBridgePool'],
 			1,
-			dataParse['debaseEthBridgePool'],
+			dataParse['debaseDaiBridgePool'],
 			1,
-			dataParse['uwuMiningPool'],
+			dataParse['uwuBusdLpMiningPool'],
 			6,
 			dataParse['seed'],
 			2,

@@ -21,8 +21,8 @@ async function main() {
 		const seedCap = parseEther('1000000');
 		const walletCapPercentage = 5;
 		const scale = parseEther('1');
-		const seedDuration = 60 * 60 * 1;
-		const distributionTime = 60 * 60 * 2;
+		const seedDuration = 60 * 10 * 1;
+		const distributionTime = 60 * 10 * 1;
 
 		const uniswapV2Pair = new ethers.Contract(
 			dataParse['bnbBusdLp'],
@@ -57,6 +57,7 @@ async function main() {
 			dataParse['busd'],
 			dataParse['factory'],
 			dataParse['router'],
+			dataParse['uwuPolicy'],
 			account,
 			bnbCap,
 			walletCap,

@@ -73,8 +73,6 @@ contract MiningPool is Ownable, LPTokenWrapper, ReentrancyGuard, Initializable {
     uint256 public rewardPerTokenStored;
     uint256 public rewardDistributed;
 
-    address public factory;
-
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
@@ -110,39 +108,13 @@ contract MiningPool is Ownable, LPTokenWrapper, ReentrancyGuard, Initializable {
         _;
     }
 
-    // https://uniswap.org/docs/v2/smart-contract-integration/getting-pair-addresses/
-    function genUniAddr(address left, address right)
-        internal
-        view
-        returns (address)
-    {
-        address first = left < right ? left : right;
-        address second = left < right ? right : left;
-        address pair =
-            address(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            factory,
-                            keccak256(abi.encodePacked(first, second)),
-                            hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
-                        )
-                    )
-                )
-            );
-        return pair;
-    }
-
     function initialize(
         address rewardToken_,
         address pairToken_,
-        address factory_,
         uint256 duration_
     ) external initializer {
-        setStakeToken(genUniAddr(rewardToken_, pairToken_));
+        setStakeToken(pairToken_);
         rewardToken = IERC20(rewardToken_);
-        factory = factory_;
 
         maxReward = rewardToken.balanceOf(address(this));
         duration = duration_;

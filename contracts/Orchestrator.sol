@@ -44,10 +44,9 @@ contract Orchestrator is Ownable, Initializable {
     uint256 public rebaseRequiredSupply;
 
     event LogRebaseStarted(uint256 timeStarted);
-    event LogAddNewUniPair(address token1, address token2);
+    event LogAddNewUniPair(address pair);
 
     uint256 constant SYNC_GAS = 50000;
-    address public factory;
 
     struct UniPair {
         bool enabled;
@@ -64,32 +63,7 @@ contract Orchestrator is Ownable, Initializable {
         _;
     }
 
-    // https://uniswap.org/docs/v2/smart-contract-integration/getting-pair-addresses/
-    function genUniAddr(address left, address right)
-        internal
-        view
-        returns (IUniswapV2Pair)
-    {
-        address first = left < right ? left : right;
-        address second = left < right ? right : left;
-        address pair =
-            address(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            factory,
-                            keccak256(abi.encodePacked(first, second)),
-                            hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
-                        )
-                    )
-                )
-            );
-        return IUniswapV2Pair(pair);
-    }
-
     function initialize(
-        address factory_,
         address uwu_,
         address uwuPolicy_,
         IPool debaseBridgePool_,
@@ -98,7 +72,6 @@ contract Orchestrator is Ownable, Initializable {
         uint256 rebaseRequiredSupply_,
         uint256 oracleStartTimeOffset
     ) external initializer {
-        factory = factory_;
         uwu = IUwU(uwu_);
         uwuPolicy = IUwUPolicy(uwuPolicy_);
 
@@ -111,9 +84,9 @@ contract Orchestrator is Ownable, Initializable {
         rebaseRequiredSupply = rebaseRequiredSupply_;
     }
 
-    function addUniPair(address token1, address token2) external onlyOwner {
-        uniSyncs.push(UniPair(true, genUniAddr(token1, token2)));
-        emit LogAddNewUniPair(token1, token2);
+    function addUniPair(address pair) external onlyOwner {
+        uniSyncs.push(UniPair(true, IUniswapV2Pair(pair)));
+        emit LogAddNewUniPair(pair);
     }
 
     /**

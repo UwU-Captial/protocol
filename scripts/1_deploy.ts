@@ -40,8 +40,8 @@ async function main() {
 		orchestrator: '',
 		seed: '',
 		debaseBridgePool: '',
-		debaseEthBridgePool: '',
-		uwuMiningPool: '',
+		debaseDaiBridgePool: '',
+		uwuBusdLpMiningPool: '',
 		uwuBusdLp: '',
 		oracle: ''
 	};
@@ -148,7 +148,6 @@ async function main() {
 		let pair = await factory.getPair(bnb.address, busd.address);
 
 		await orchestrator.initialize(
-			contractAddresses.factory,
 			uwu.address,
 			uwuPolicy.address,
 			debaseBridgePool.address,
@@ -166,8 +165,8 @@ async function main() {
 		contractAddresses.busd = busd.address;
 		contractAddresses.orchestrator = orchestrator.address;
 		contractAddresses.debaseBridgePool = debaseBridgePool.address;
-		contractAddresses.debaseEthBridgePool = debaseEthBridgePool.address;
-		contractAddresses.uwuMiningPool = uwuMiningPool.address;
+		contractAddresses.debaseDaiBridgePool = debaseEthBridgePool.address;
+		contractAddresses.uwuBusdLpMiningPool = uwuMiningPool.address;
 		contractAddresses.seed = seed.address;
 		contractAddresses.bnbBusdLp = pair;
 

@@ -37,13 +37,14 @@ contract Seed is Ownable, Initializable {
     IUniswapV2Router02 public router;
     IUniswapV2Pair public pair;
     address public devWallet;
+    address public policy;
 
     uint256 public lpBalance;
     uint256 public priceAtLaunch;
     uint256 public tokenExchangeRate;
     uint256 public BNBCap;
     uint256 public walletBNBCap;
-    uint256 public UwUDistribution;
+    uint256 public totalUwUReward;
 
     uint256 public seedDuration;
     uint256 public seedEndsAt;
@@ -53,14 +54,17 @@ contract Seed is Ownable, Initializable {
     uint256 public remainingUwUDistributionEndsAt;
     bool public remainingUwUDistributionEnabled;
 
-    uint256 public BNBDeposited;
-    uint256 public UwUDistributed;
+    uint256 public totalBNBDeposited;
+    uint256 public totalUwUDistributed;
 
     address[] path;
 
     struct User {
         uint256 BNBBalance;
-        uint256 UwUBalance;
+        uint256 UwUClaimRoundOne;
+        uint256 UwUClaimRoundTwo;
+        uint256 UwUClaimed;
+        uint256 UwULockInLps;
         uint256 LpSent;
     }
 
@@ -73,6 +77,7 @@ contract Seed is Ownable, Initializable {
         IERC20 BUSD_,
         IUniswapV2Factory factory_,
         IUniswapV2Router02 router_,
+        address policy_,
         address devWallet_,
         uint256 BNBCap_,
         uint256 walletBNBCap_,
@@ -88,6 +93,7 @@ contract Seed is Ownable, Initializable {
         devWallet = devWallet_;
         factory = factory_;
         router = router_;
+        policy = policy_;
 
         path.push(address(BNB));
         path.push(address(BUSD));
@@ -95,7 +101,7 @@ contract Seed is Ownable, Initializable {
         seedDuration = seedDuration_;
         remainingUwUDistributionDuration = remainingUwUDistributionDuration_;
 
-        UwUDistribution = UwU.balanceOf(address(this));
+        totalUwUReward = UwU.balanceOf(address(this));
         priceAtLaunch = priceAtLaunch_;
         BNBCap = BNBCap_;
         walletBNBCap = walletBNBCap_;
@@ -114,7 +120,7 @@ contract Seed is Ownable, Initializable {
             seedEnabled && block.timestamp < seedEndsAt,
             "Deposit time finished"
         );
-        require(BNBDeposited.add(amount) <= BNBCap);
+        require(totalBNBDeposited.add(amount) <= BNBCap);
         User storage instance = Users[msg.sender];
 
         if (instance.BNBBalance == 0) {
@@ -122,13 +128,21 @@ contract Seed is Ownable, Initializable {
         }
 
         uint256 currentBNBBalance = instance.BNBBalance.add(amount);
-        require(currentBNBBalance <= walletBNBCap, "Deposit Over Cap");
+        //require(currentBNBBalance <= walletBNBCap, "Deposit Over Cap");
 
         instance.BNBBalance = currentBNBBalance;
-        BNBDeposited = BNBDeposited.add((amount));
+        totalBNBDeposited = totalBNBDeposited.add((amount));
 
         uint256 UwUToRecieve = amount.mul(tokenExchangeRate).div(1 ether);
-        instance.UwUBalance = instance.UwUBalance.add(UwUToRecieve);
+        instance.UwUClaimRoundOne = instance.UwUClaimRoundOne.add(
+            UwUToRecieve.mul(57).div(100)
+        );
+        instance.UwUClaimRoundTwo = instance.UwUClaimRoundTwo.add(
+            UwUToRecieve.mul(23).div(100)
+        );
+        instance.UwULockInLps = instance.UwULockInLps.add(
+            UwUToRecieve.mul(20).div(100)
+        );
 
         BNB.transferFrom(msg.sender, address(this), amount);
     }
@@ -136,30 +150,34 @@ contract Seed is Ownable, Initializable {
     function swapBnbAndCreatePancakePair() external onlyOwner {
         require(
             seedEnabled &&
-                (BNBDeposited == BNBCap || block.timestamp >= seedEndsAt)
+                (totalBNBDeposited == BNBCap || block.timestamp >= seedEndsAt)
         );
 
-        BNB.approve(address(router), BNBDeposited);
+        BNB.approve(address(router), totalBNBDeposited);
         router.swapTokensForExactTokens(
             150000 ether,
-            BNBDeposited,
+            totalBNBDeposited,
             path,
             address(this),
             block.timestamp.add(20 minutes)
         );
 
+        uint256 uwuLiquidity = UwU.balanceOf(address(this)).mul(20).div(100);
+
+        UwU.approve(address(router), uwuLiquidity);
+        BUSD.approve(address(router), 150000 ether);
+
+        totalUwUDistributed = totalUwUDistributed.add(uwuLiquidity);
+
         uint256 amount1;
         uint256 amount2;
-
-        UwU.approve(address(router), 4000 ether);
-        BUSD.approve(address(router), 150000 ether);
 
         (amount1, amount2, lpBalance) = router.addLiquidity(
             address(UwU),
             address(BUSD),
-            4000 ether,
+            uwuLiquidity,
             150000 ether,
-            4000 ether,
+            uwuLiquidity,
             150000 ether,
             address(this),
             block.timestamp.add(20 minutes)
@@ -183,14 +201,14 @@ contract Seed is Ownable, Initializable {
             address userAddr = userAddresses[index];
             User storage instance = Users[userAddr];
 
-            uint256 uwuToTransfer = instance.UwUBalance.mul(57).div(100);
+            uint256 uwuToTransfer = instance.UwUClaimRoundOne;
             uint256 lpToTransfer =
-                lpBalance.mul(instance.BNBBalance).div(BNBDeposited);
+                lpBalance.mul(instance.BNBBalance).div(totalBNBDeposited);
 
-            instance.UwUBalance = instance.UwUBalance.sub(uwuToTransfer);
+            instance.UwUClaimed = instance.UwUClaimed.add(uwuToTransfer);
             instance.LpSent = lpToTransfer;
 
-            UwUDistributed = UwUDistributed.add(uwuToTransfer);
+            totalUwUDistributed = totalUwUDistributed.add(uwuToTransfer);
             UwU.transfer(userAddr, uwuToTransfer);
             pair.transfer(userAddr, lpToTransfer);
         }
@@ -218,11 +236,13 @@ contract Seed is Ownable, Initializable {
             address userAddr = userAddresses[index];
             User storage instance = Users[userAddr];
 
-            uint256 amountToTransfer = instance.UwUBalance;
-            instance.UwUBalance = 0;
+            uint256 uwuToTransfer = instance.UwUClaimRoundTwo;
+            instance.UwUClaimed = instance.UwUClaimed.add(uwuToTransfer);
 
-            UwUDistributed = UwUDistributed.add(amountToTransfer);
-            UwU.transfer(userAddr, amountToTransfer);
+            totalUwUDistributed = totalUwUDistributed.add(uwuToTransfer);
+            UwU.transfer(userAddr, uwuToTransfer);
         }
+
+        UwU.transfer(policy, UwU.balanceOf(address(this)));
     }
 }

@@ -25,21 +25,15 @@ contract ExampleOracleSimple {
     FixedPoint.uq112x112 public price0Average;
     FixedPoint.uq112x112 public price1Average;
 
-    constructor(
-        address factory,
-        address tokenA,
-        address tokenB
-    ) public {
-        IUniswapV2Pair _pair =
-            IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB));
-        pair = _pair;
-        token0 = _pair.token0();
-        token1 = _pair.token1();
-        price0CumulativeLast = _pair.price0CumulativeLast(); // fetch the current accumulated price value (1 / 0)
-        price1CumulativeLast = _pair.price1CumulativeLast(); // fetch the current accumulated price value (0 / 1)
+    constructor(IUniswapV2Pair pair_) public {
+        pair = pair_;
+        token0 = pair_.token0();
+        token1 = pair_.token1();
+        price0CumulativeLast = pair_.price0CumulativeLast(); // fetch the current accumulated price value (1 / 0)
+        price1CumulativeLast = pair_.price1CumulativeLast(); // fetch the current accumulated price value (0 / 1)
         uint112 reserve0;
         uint112 reserve1;
-        (reserve0, reserve1, blockTimestampLast) = _pair.getReserves();
+        (reserve0, reserve1, blockTimestampLast) = pair_.getReserves();
         // ensure that there's liquidity in the pair
         require(
             reserve0 != 0 && reserve1 != 0,
@@ -114,15 +108,12 @@ contract Oracle is Ownable, ExampleOracleSimple {
     address uwu;
     address public uwuPolicy;
     uint256 constant SCALE = 10**18;
-    address public factory;
 
     constructor(
-        address factory_,
         address uwu_,
-        address busd_,
+        IUniswapV2Pair pair_,
         address uwuPolicy_
-    ) public ExampleOracleSimple(factory_, uwu_, busd_) {
-        factory = factory_;
+    ) public ExampleOracleSimple(pair_) {
         uwu = uwu_;
         uwuPolicy = uwuPolicy_;
     }

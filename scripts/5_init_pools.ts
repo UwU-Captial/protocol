@@ -25,30 +25,32 @@ async function main() {
 			signer[0]
 		)) as any) as BridgePool;
 
-		const debaseEthBridgePool = ((await ethers.getContractAt(
+		const debaseDaiBridgePool = ((await ethers.getContractAt(
 			BridgePoolArtifact.abi,
-			dataParse['debaseEthBridgePool'],
+			dataParse['debaseDaiBridgePool'],
 			signer[0]
 		)) as any) as BridgePool;
 
 		const uwuMiningPool = ((await ethers.getContractAt(
 			MiningPoolArtifact.abi,
-			dataParse['uwuMiningPool'],
+			dataParse['uwuBusdLpMiningPool'],
 			signer[0]
 		)) as any) as MiningPool;
 
 		let tx = await seed.swapBnbAndCreatePancakePair();
-		tx.wait(1);
+		await tx.wait(1);
+		tx = await seed.transferTokensAndLps(0, 0);
+		await tx.wait(1);
+		tx = await seed.withdrawRemainingBnB();
+		await tx.wait(1);
+
+		const pair = await seed.pair();
 
 		await debaseBridgePool.initialize(dataParse['uwu'], 60 * 60 * 2);
-		await debaseEthBridgePool.initialize(dataParse['uwu'], 60 * 60 * 2);
-		await uwuMiningPool.initialize(dataParse['uwu'], dataParse['busd'], dataParse['factory'], 60 * 60 * 2);
+		await debaseDaiBridgePool.initialize(dataParse['uwu'], 60 * 60 * 2);
+		await uwuMiningPool.initialize(dataParse['uwu'], pair, 60 * 60 * 2);
 
-		await debaseBridgePool.startPool();
-		await debaseEthBridgePool.startPool();
-		await uwuMiningPool.startPool();
-
-		dataParse['uwuBnbLp'] = await seed.pair();
+		dataParse['uwuBusdLp'] = pair;
 		const updatedData = JSON.stringify(dataParse);
 		await promises.writeFile('contracts.json', updatedData);
 	} catch (error) {

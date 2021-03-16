@@ -26,14 +26,12 @@ async function main() {
 			signer[0]
 		)) as any) as UwUPolicy;
 
-		const oracle = await oracleFactory.deploy(
-			dataParse['factory'],
-			dataParse['uwu'],
-			dataParse['busd'],
-			dataParse['uwuPolicy']
-		);
-
+		const oracle = await oracleFactory.deploy(dataParse['uwu'], dataParse['uwuBusdLp'], dataParse['uwuPolicy']);
 		await uwuPolicy.setOracle(oracle.address);
+
+		dataParse['oracle'] = oracle.address;
+		const updatedData = JSON.stringify(dataParse);
+		await promises.writeFile('contracts.json', updatedData);
 	} catch (error) {
 		console.error(error);
 	}
