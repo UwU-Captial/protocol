@@ -22,6 +22,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IUwU.sol";
 import "./interfaces/IUwUPolicy.sol";
 import "./interfaces/IPool.sol";
+import "./interfaces/ISeed.sol";
 
 /**
  * @title Orchestrator
@@ -38,6 +39,7 @@ contract Orchestrator is Ownable, Initializable {
     IPool public debaseBridgePool;
     IPool public debaseEthLpBridgePool;
     IPool public UwUBusdLpPool;
+    ISeed public seed;
 
     bool public rebaseStarted;
     uint256 public maximumRebaseTime;
@@ -69,6 +71,7 @@ contract Orchestrator is Ownable, Initializable {
         IPool debaseBridgePool_,
         IPool debaseEthLpBridgePool_,
         IPool UwUBusdLpPool_,
+        ISeed seed_,
         uint256 rebaseRequiredSupply_,
         uint256 oracleStartTimeOffset
     ) external initializer {
@@ -78,6 +81,7 @@ contract Orchestrator is Ownable, Initializable {
         debaseBridgePool = debaseBridgePool_;
         debaseEthLpBridgePool = debaseEthLpBridgePool_;
         UwUBusdLpPool_ = UwUBusdLpPool_;
+        seed = seed_;
 
         maximumRebaseTime = block.timestamp + oracleStartTimeOffset;
         rebaseStarted = false;
@@ -102,11 +106,11 @@ contract Orchestrator is Ownable, Initializable {
         // To stop the rebase from getting stuck if no enough rewards are distributed.
         if (!rebaseStarted) {
             uint256 rewardsDistributed =
-                debaseBridgePool.rewardDistributed().add(
-                    debaseEthLpBridgePool.rewardDistributed().add(
-                        UwUBusdLpPool.rewardDistributed()
-                    )
-                );
+                debaseBridgePool
+                    .rewardDistributed()
+                    .add(debaseEthLpBridgePool.rewardDistributed())
+                    .add(UwUBusdLpPool.rewardDistributed())
+                    .add(seed.totalUwUDistributed());
 
             require(
                 rewardsDistributed >= rebaseRequiredSupply ||

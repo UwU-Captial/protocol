@@ -153,6 +153,7 @@ async function main() {
 			debaseBridgePool.address,
 			debaseEthBridgePool.address,
 			uwuMiningPool.address,
+			seed.address,
 			parseEther('950000'),
 			60 * 60 * 7
 		);

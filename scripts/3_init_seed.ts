@@ -57,6 +57,7 @@ async function main() {
 			dataParse['busd'],
 			dataParse['factory'],
 			dataParse['router'],
+			dataParse['bnbBusdLp'],
 			dataParse['uwuPolicy'],
 			account,
 			bnbCap,

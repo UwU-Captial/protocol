@@ -25,6 +25,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IUwU.sol";
+import "@uniswap/lib/contracts/libraries/FixedPoint.sol";
 
 contract Seed is Ownable, Initializable {
     using SafeMath for uint256;
@@ -35,6 +36,7 @@ contract Seed is Ownable, Initializable {
     IERC20 public BUSD;
     IUniswapV2Factory public factory;
     IUniswapV2Router02 public router;
+    IUniswapV2Pair public bnbBusdPair;
     IUniswapV2Pair public pair;
     address public devWallet;
     address public policy;
@@ -77,6 +79,7 @@ contract Seed is Ownable, Initializable {
         IERC20 BUSD_,
         IUniswapV2Factory factory_,
         IUniswapV2Router02 router_,
+        IUniswapV2Pair bnbBusdPair_,
         address policy_,
         address devWallet_,
         uint256 BNBCap_,
@@ -90,6 +93,7 @@ contract Seed is Ownable, Initializable {
         BNB = BNB_;
         BUSD = BUSD_;
 
+        bnbBusdPair = bnbBusdPair_;
         devWallet = devWallet_;
         factory = factory_;
         router = router_;
@@ -153,9 +157,21 @@ contract Seed is Ownable, Initializable {
                 (totalBNBDeposited == BNBCap || block.timestamp >= seedEndsAt)
         );
 
+        uint256 currentPrice;
+        (uint256 res0, uint256 res1, ) = bnbBusdPair.getReserves();
+
+        if (bnbBusdPair.token0() == address(BNB)) {
+            currentPrice = res1.mul(10**18).div(res0);
+        } else {
+            currentPrice = res0.mul(10**18).div(res1);
+        }
+
+        uint256 bnbToSwap = BNB.balanceOf(address(this)).mul(20).div(100);
+        uint256 bnbToSwapToBusd = bnbToSwap.mul(currentPrice).div(10**18);
+
         BNB.approve(address(router), totalBNBDeposited);
         router.swapTokensForExactTokens(
-            150000 ether,
+            bnbToSwapToBusd,
             totalBNBDeposited,
             path,
             address(this),
@@ -165,7 +181,7 @@ contract Seed is Ownable, Initializable {
         uint256 uwuLiquidity = UwU.balanceOf(address(this)).mul(20).div(100);
 
         UwU.approve(address(router), uwuLiquidity);
-        BUSD.approve(address(router), 150000 ether);
+        BUSD.approve(address(router), bnbToSwapToBusd);
 
         totalUwUDistributed = totalUwUDistributed.add(uwuLiquidity);
 
@@ -176,9 +192,9 @@ contract Seed is Ownable, Initializable {
             address(UwU),
             address(BUSD),
             uwuLiquidity,
-            150000 ether,
+            bnbToSwapToBusd,
             uwuLiquidity,
-            150000 ether,
+            bnbToSwapToBusd,
             address(this),
             block.timestamp.add(20 minutes)
         );
@@ -223,14 +239,17 @@ contract Seed is Ownable, Initializable {
         BNB.safeTransfer(devWallet, BNB.balanceOf(address(this)));
     }
 
-    function transferRemainingUwU() external onlyOwner {
+    function transferRemainingUwU(uint256 lowerIndex, uint256 higherIndex)
+        external
+        onlyOwner
+    {
         require(
             remainingUwUDistributionEnabled &&
                 block.timestamp >= remainingUwUDistributionEndsAt
         );
         for (
-            uint256 index = 0;
-            index < userAddresses.length;
+            uint256 index = lowerIndex;
+            index <= higherIndex;
             index = index.add(1)
         ) {
             address userAddr = userAddresses[index];
@@ -242,7 +261,5 @@ contract Seed is Ownable, Initializable {
             totalUwUDistributed = totalUwUDistributed.add(uwuToTransfer);
             UwU.transfer(userAddr, uwuToTransfer);
         }
-
-        UwU.transfer(policy, UwU.balanceOf(address(this)));
     }
 }
