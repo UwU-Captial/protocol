@@ -46,9 +46,9 @@ async function main() {
 
 		const pair = await seed.pair();
 
-		await debaseBridgePool.initialize(dataParse['uwu'], 60 * 60 * 2);
-		await debaseDaiBridgePool.initialize(dataParse['uwu'], 60 * 60 * 2);
-		await uwuMiningPool.initialize(dataParse['uwu'], pair, 60 * 60 * 2);
+		await debaseBridgePool.initialize(dataParse['uwu'], 60 * 7 * 1);
+		await debaseDaiBridgePool.initialize(dataParse['uwu'], 60 * 7 * 1);
+		await uwuMiningPool.initialize(dataParse['uwu'], pair, 60 * 3 * 1);
 
 		dataParse['uwuBusdLp'] = pair;
 		const updatedData = JSON.stringify(dataParse);

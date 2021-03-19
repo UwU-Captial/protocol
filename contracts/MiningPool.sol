@@ -92,6 +92,7 @@ contract MiningPool is Ownable, LPTokenWrapper, ReentrancyGuard, Initializable {
             initReward = initReward.mul(50).div(100);
 
             rewardRate = initReward.div(duration);
+            lastUpdateTime = block.timestamp;
             periodFinish = block.timestamp.add(duration);
             emit RewardAdded(initReward);
         }
