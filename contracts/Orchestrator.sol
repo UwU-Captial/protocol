@@ -37,7 +37,7 @@ contract Orchestrator is Ownable, Initializable {
     IUwUPolicy public uwuPolicy;
 
     IPool public debaseBridgePool;
-    IPool public debaseEthLpBridgePool;
+    IPool public debaseDaiLpBridgePool;
     IPool public UwUBusdLpPool;
     ISeed public seed;
 
@@ -69,7 +69,7 @@ contract Orchestrator is Ownable, Initializable {
         address uwu_,
         address uwuPolicy_,
         IPool debaseBridgePool_,
-        IPool debaseEthLpBridgePool_,
+        IPool debaseDaiLpBridgePool_,
         IPool UwUBusdLpPool_,
         ISeed seed_,
         uint256 rebaseRequiredSupply_,
@@ -79,8 +79,8 @@ contract Orchestrator is Ownable, Initializable {
         uwuPolicy = IUwUPolicy(uwuPolicy_);
 
         debaseBridgePool = debaseBridgePool_;
-        debaseEthLpBridgePool = debaseEthLpBridgePool_;
-        UwUBusdLpPool_ = UwUBusdLpPool_;
+        debaseDaiLpBridgePool = debaseDaiLpBridgePool_;
+        UwUBusdLpPool = UwUBusdLpPool_;
         seed = seed_;
 
         maximumRebaseTime = block.timestamp + oracleStartTimeOffset;
@@ -108,7 +108,7 @@ contract Orchestrator is Ownable, Initializable {
             uint256 rewardsDistributed =
                 debaseBridgePool
                     .rewardDistributed()
-                    .add(debaseEthLpBridgePool.rewardDistributed())
+                    .add(debaseDaiLpBridgePool.rewardDistributed())
                     .add(UwUBusdLpPool.rewardDistributed())
                     .add(seed.totalUwUDistributed());
 
