@@ -24,10 +24,11 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@openzeppelin/contracts/utils/Address.sol"
 import "./interfaces/IUwU.sol";
-import "@uniswap/lib/contracts/libraries/FixedPoint.sol";
 
 contract Seed is Ownable, Initializable {
+    using Address for address;
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -119,6 +120,10 @@ contract Seed is Ownable, Initializable {
     }
 
     function deposit(uint256 amount) external {
+        require(
+            !address(msg.sender).isContrat(),
+            "Caller must not be a contract"
+        );
         require(amount != 0);
         require(
             seedEnabled && block.timestamp < seedEndsAt,
@@ -132,7 +137,7 @@ contract Seed is Ownable, Initializable {
         }
 
         uint256 currentBNBBalance = instance.BNBBalance.add(amount);
-        //require(currentBNBBalance <= walletBNBCap, "Deposit Over Cap");
+        require(currentBNBBalance <= walletBNBCap, "Deposit Over Cap");
 
         instance.BNBBalance = currentBNBBalance;
         totalBNBDeposited = totalBNBDeposited.add((amount));
