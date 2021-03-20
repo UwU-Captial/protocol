@@ -170,7 +170,7 @@ contract Seed is Ownable, Initializable {
             currentPrice = res0.mul(10**18).div(res1);
         }
 
-        uint256 bnbToSwap = BNB.balanceOf(address(this)).mul(20).div(100);
+        uint256 bnbToSwap = BNB.balanceOf(address(this)).mul(1667).div(10000);
         uint256 bnbToSwapToBusd = bnbToSwap.mul(currentPrice).div(10**18);
 
         BNB.approve(address(router), totalBNBDeposited);
