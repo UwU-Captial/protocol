@@ -24,13 +24,12 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@openzeppelin/contracts/utils/Address.sol"
 import "./interfaces/IUwU.sol";
 
 contract Seed is Ownable, Initializable {
-    using Address for address;
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+    using Address for address;
 
     IUwU public UwU;
     IERC20 public BNB;
@@ -121,7 +120,7 @@ contract Seed is Ownable, Initializable {
 
     function deposit(uint256 amount) external {
         require(
-            !address(msg.sender).isContrat(),
+            !address(msg.sender).isContract(),
             "Caller must not be a contract"
         );
         require(amount != 0);

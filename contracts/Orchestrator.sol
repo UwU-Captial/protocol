@@ -48,7 +48,7 @@ contract Orchestrator is Ownable, Initializable {
     event LogRebaseStarted(uint256 timeStarted);
     event LogAddNewUniPair(address pair);
 
-    uint256 constant SYNC_GAS = 50000;
+    uint256 public syncGas = 100000;
 
     struct UniPair {
         bool enabled;
@@ -63,6 +63,10 @@ contract Orchestrator is Ownable, Initializable {
             "Index must be less than array length"
         );
         _;
+    }
+
+    function setSyncGas(uint256 syncGas_) external onlyOwner {
+        syncGas = syncGas_;
     }
 
     function initialize(
@@ -126,7 +130,7 @@ contract Orchestrator is Ownable, Initializable {
 
         for (uint256 i = 0; i < uniSyncs.length; i++) {
             if (uniSyncs[i].enabled) {
-                address(uniSyncs[i].pair).call{gas: SYNC_GAS}(
+                address(uniSyncs[i].pair).call{gas: syncGas}(
                     abi.encode(uniSyncs[i].pair.sync.selector)
                 );
             }
