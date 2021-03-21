@@ -17,12 +17,12 @@ async function main() {
 		let data = await promises.readFile('contracts.json', 'utf-8');
 		let dataParse = JSON.parse(data.toString());
 
-		const uwuDistribution = parseEther('20000');
-		const seedCap = parseEther('1000000');
+		const uwuDistribution = parseEther('200000');
+		const seedCap = parseEther('900000');
 		const walletCapPercentage = 5;
 		const scale = parseEther('1');
-		const seedDuration = 60 * 4 * 1;
-		const distributionTime = 60 * 2 * 1;
+		const seedDuration = 60 * 1 * 1;
+		const distributionTime = 60 * 1 * 1;
 
 		const uniswapV2Pair = new ethers.Contract(
 			dataParse['bnbBusdLp'],
@@ -30,13 +30,8 @@ async function main() {
 			signer[0]
 		) as IUniswapV2Pair;
 		const resData = await uniswapV2Pair.getReserves();
-		let currentPrice: BigNumber;
 
-		if ((await uniswapV2Pair.token0()) == dataParse['bnb']) {
-			currentPrice = resData.reserve1.mul(scale).div(resData.reserve0);
-		} else {
-			currentPrice = resData.reserve0.mul(scale).div(resData.reserve1);
-		}
+		let currentPrice = resData.reserve1.mul(scale).div(resData.reserve0);
 
 		const bnbCap = seedCap.mul(scale).div(currentPrice);
 		const walletCap = bnbCap.mul(walletCapPercentage).div(100);

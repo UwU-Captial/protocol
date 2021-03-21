@@ -23,7 +23,6 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-
 contract BridgePool is Ownable, Initializable {
     using Address for address;
     using SafeMath for uint256;
@@ -32,6 +31,7 @@ contract BridgePool is Ownable, Initializable {
     IERC20 public rewardToken;
     uint256 public duration;
     bool public poolEnabled;
+    address public devWallet;
 
     uint256 public initReward;
     uint256 public maxReward;
@@ -79,13 +79,15 @@ contract BridgePool is Ownable, Initializable {
         _;
     }
 
-    function initialize(address rewardToken_, uint256 duration_)
-        external
-        initializer
-    {
+    function initialize(
+        address rewardToken_,
+        uint256 duration_,
+        address devWallet_
+    ) external initializer {
         rewardToken = IERC20(rewardToken_);
         maxReward = rewardToken.balanceOf(address(this));
         duration = duration_;
+        devWallet = devWallet_;
     }
 
     function startPool() external onlyOwner {
@@ -142,9 +144,13 @@ contract BridgePool is Ownable, Initializable {
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
-            rewardToken.safeTransfer(msg.sender, reward);
+            uint256 tax = reward.mul(2).div(100);
+            uint256 rewardRemaining = reward.sub(tax);
+
+            rewardToken.safeTransfer(msg.sender, rewardRemaining);
+            rewardToken.safeTransfer(devWallet, tax);
             rewardDistributed = rewardDistributed.add(reward);
-            emit RewardPaid(msg.sender, reward);
+            emit RewardPaid(msg.sender, rewardRemaining);
         }
     }
 

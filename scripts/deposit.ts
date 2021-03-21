@@ -2,26 +2,29 @@ import { ethers } from 'hardhat';
 
 import SeedArtifact from '../artifacts/contracts/Seed.sol/Seed.json';
 import { Seed } from '../type/Seed';
-import TokenArtifact from '../artifacts/contracts/mock/Token.sol/Token.json';
+import IWBNBArtifact from '../artifacts/contracts/interfaces/IWBNB.sol/IWBNB.json';
 
 import { promises } from 'fs';
-import { Token } from '../type/Token';
+import { Iwbnb } from '../type/Iwbnb';
+import { formatEther } from '@ethersproject/units';
 
 async function main() {
 	const signer = await ethers.getSigners();
+	const account = await signer[0].getAddress();
 
 	try {
 		let data = await promises.readFile('contracts.json', 'utf-8');
 		let dataParse = JSON.parse(data.toString());
 
-		const bnb = ((await ethers.getContractAt(TokenArtifact.abi, dataParse['bnb'], signer[0])) as any) as Token;
+		const bnb = ((await ethers.getContractAt(IWBNBArtifact.abi, dataParse['bnb'], signer[0])) as any) as Iwbnb;
 		const seed = ((await ethers.getContractAt(SeedArtifact.abi, dataParse['seed'], signer[0])) as any) as Seed;
+		let amount = await seed.walletBNBCap();
 
-		let amount = await seed.BNBCap();
-
+		await bnb.deposit({ value: amount });
+		console.log('WBNB Balance', formatEther(await bnb.balanceOf(account)));
 		await bnb.approve(seed.address, amount);
+
 		await seed.deposit(amount);
-		// await seed.swapBnbAndCreatePancakePair();
 	} catch (error) {
 		console.error(error);
 	}

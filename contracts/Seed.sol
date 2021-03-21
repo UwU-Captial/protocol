@@ -25,6 +25,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IUwU.sol";
+import "hardhat/console.sol";
 
 contract Seed is Ownable, Initializable {
     using SafeMath for uint256;
@@ -157,17 +158,13 @@ contract Seed is Ownable, Initializable {
     function swapBnbAndCreatePancakePair() external onlyOwner {
         require(
             seedEnabled &&
-                (totalBNBDeposited == BNBCap || block.timestamp >= seedEndsAt)
+                (totalBNBDeposited == BNBCap || block.timestamp >= seedEndsAt),"Cant seed yet"
         );
 
-        uint256 currentPrice;
         (uint256 res0, uint256 res1, ) = bnbBusdPair.getReserves();
+        uint256 currentPrice = res1.mul(10**18).div(res0);
 
-        if (bnbBusdPair.token0() == address(BNB)) {
-            currentPrice = res1.mul(10**18).div(res0);
-        } else {
-            currentPrice = res0.mul(10**18).div(res1);
-        }
+        console.log(currentPrice.div(10**18));
 
         uint256 bnbToSwap = BNB.balanceOf(address(this)).mul(1667).div(10000);
         uint256 bnbToSwapToBusd = bnbToSwap.mul(currentPrice).div(10**18);

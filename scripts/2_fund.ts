@@ -14,15 +14,15 @@ async function main() {
 		const uwu = ((await ethers.getContractAt(UwUArtifact.abi, dataParse['uwu'], signer[0])) as any) as UwU;
 		await uwu.initialize(
 			dataParse['debaseBridgePool'],
-			1,
+			100,
 			dataParse['debaseDaiBridgePool'],
-			1,
+			150,
 			dataParse['uwuBusdLpMiningPool'],
-			6,
+			7000,
 			dataParse['seed'],
-			2,
+			2000,
 			dataParse['uwuPolicy'],
-			90
+			750
 		);
 	} catch (error) {
 		console.error(error);

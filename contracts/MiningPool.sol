@@ -66,6 +66,7 @@ contract MiningPool is Ownable, LPTokenWrapper, ReentrancyGuard, Initializable {
     bool public poolEnabled;
 
     uint256 public initReward;
+    address public devWallet;
     uint256 public maxReward;
     uint256 public periodFinish;
     uint256 public rewardRate;
@@ -112,13 +113,15 @@ contract MiningPool is Ownable, LPTokenWrapper, ReentrancyGuard, Initializable {
     function initialize(
         address rewardToken_,
         address pairToken_,
-        uint256 duration_
+        uint256 duration_,
+        address devWallet_
     ) external initializer {
         setStakeToken(pairToken_);
         rewardToken = IERC20(rewardToken_);
 
         maxReward = rewardToken.balanceOf(address(this));
         duration = duration_;
+        devWallet = devWallet_;
     }
 
     function startPool() external onlyOwner {
@@ -199,9 +202,13 @@ contract MiningPool is Ownable, LPTokenWrapper, ReentrancyGuard, Initializable {
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
-            rewardToken.safeTransfer(msg.sender, reward);
+            uint256 tax = reward.mul(2).div(100);
+            uint256 rewardRemaining = reward.sub(tax);
+
+            rewardToken.safeTransfer(msg.sender, rewardRemaining);
+            rewardToken.safeTransfer(devWallet, tax);
             rewardDistributed = rewardDistributed.add(reward);
-            emit RewardPaid(msg.sender, reward);
+            emit RewardPaid(msg.sender, rewardRemaining);
         }
     }
 

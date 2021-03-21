@@ -12,6 +12,7 @@ import { promises } from 'fs';
 
 async function main() {
 	const signer = await ethers.getSigners();
+	const account = await signer[0].getAddress();
 
 	try {
 		let data = await promises.readFile('contracts.json', 'utf-8');
@@ -46,9 +47,9 @@ async function main() {
 
 		const pair = await seed.pair();
 
-		await debaseBridgePool.initialize(dataParse['uwu'], 60 * 7 * 1);
-		await debaseDaiBridgePool.initialize(dataParse['uwu'], 60 * 7 * 1);
-		await uwuMiningPool.initialize(dataParse['uwu'], pair, 60 * 3 * 1);
+		await debaseBridgePool.initialize(dataParse['uwu'], 60 * 7 * 1, account);
+		await debaseDaiBridgePool.initialize(dataParse['uwu'], 60 * 7 * 1, account);
+		await uwuMiningPool.initialize(dataParse['uwu'], pair, 60 * 3 * 1, account);
 
 		dataParse['uwuBusdLp'] = pair;
 		const updatedData = JSON.stringify(dataParse);
