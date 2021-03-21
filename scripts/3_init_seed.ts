@@ -19,10 +19,9 @@ async function main() {
 
 		const uwuDistribution = parseEther('200000');
 		const seedCap = parseEther('900000');
-		const walletCapPercentage = 5;
 		const scale = parseEther('1');
-		const seedDuration = 60 * 1 * 1;
-		const distributionTime = 60 * 1 * 1;
+		const seedDuration = 60 * 60 * 8;
+		const distributionTime = 60 * 60 * 24 * 7;
 
 		const uniswapV2Pair = new ethers.Contract(
 			dataParse['bnbBusdLp'],
@@ -34,7 +33,7 @@ async function main() {
 		let currentPrice = resData.reserve1.mul(scale).div(resData.reserve0);
 
 		const bnbCap = seedCap.mul(scale).div(currentPrice);
-		const walletCap = bnbCap.mul(walletCapPercentage).div(100);
+		const walletCap = parseEther('20000');
 		const tokenExchangeRate = uwuDistribution.mul(scale).div(bnbCap);
 
 		console.log(
@@ -54,7 +53,7 @@ async function main() {
 			dataParse['router'],
 			dataParse['bnbBusdLp'],
 			dataParse['uwuPolicy'],
-			account,
+			'0xbc23987868B0bd549d03A234f610d4203f4d9cf0',
 			bnbCap,
 			walletCap,
 			currentPrice,

@@ -94,8 +94,8 @@ async function main() {
 			debaseEthBridgePool.address,
 			uwuMiningPool.address,
 			seed.address,
-			parseEther('950000'),
-			60 * 60 * 7
+			parseEther('900000'),
+			60 * 60 * 24 * 14
 		);
 
 		await uwuPolicy.initialize(uwu.address, orchestrator.address);
