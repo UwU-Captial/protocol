@@ -48,6 +48,7 @@ contract Seed is Ownable, Initializable {
     uint256 public walletBNBCap;
     uint256 public totalUwUReward;
 
+    uint256 constant maxPercentage = 1 ether;
     uint256 public seedDuration;
     uint256 public seedEndsAt;
     bool public seedEnabled;
@@ -59,15 +60,20 @@ contract Seed is Ownable, Initializable {
     uint256 public totalBNBDeposited;
     uint256 public totalUwUDistributed;
 
+    uint256 public uwuLiquidityPercentage;
+    uint256 public uwuLockPercentage;
+    uint256 public uwuUnlockPercentage;
+
     address[] path;
 
     struct User {
         uint256 BNBBalance;
-        uint256 UwUClaimRoundOne;
-        uint256 UwUClaimRoundTwo;
-        uint256 UwUClaimed;
+        uint256 uwuClaim;
+        uint256 uwuUnlocked;
+        uint256 uwuLocked;
         uint256 UwULockInLps;
         uint256 LpSent;
+        uint256 UwUClaimed;
     }
 
     address[] public userAddresses;
@@ -141,15 +147,8 @@ contract Seed is Ownable, Initializable {
         instance.BNBBalance = currentBNBBalance;
         totalBNBDeposited = totalBNBDeposited.add((amount));
 
-        uint256 UwUToRecieve = amount.mul(tokenExchangeRate).div(1 ether);
-        instance.UwUClaimRoundOne = instance.UwUClaimRoundOne.add(
-            UwUToRecieve.mul(57).div(100)
-        );
-        instance.UwUClaimRoundTwo = instance.UwUClaimRoundTwo.add(
-            UwUToRecieve.mul(23).div(100)
-        );
-        instance.UwULockInLps = instance.UwULockInLps.add(
-            UwUToRecieve.mul(20).div(100)
+        instance.uwuClaim = instance.uwuClaim.add(
+            amount.mul(tokenExchangeRate).div(10**18)
         );
 
         BNB.transferFrom(msg.sender, address(this), amount);
@@ -182,7 +181,13 @@ contract Seed is Ownable, Initializable {
             block.timestamp.add(20 minutes)
         );
 
-        uint256 uwuLiquidity = UwU.balanceOf(address(this)).mul(20).div(100);
+        uint256 uwuLiquidity =
+            bnbToSwapToBusd.mul(10**18).div(3750000000000000000);
+        uwuLiquidityPercentage = uwuLiquidity.mul(10**18).div(totalUwUReward);
+
+        uint256 remainingPercentage = maxPercentage.sub(uwuLiquidityPercentage);
+        uwuUnlockPercentage = remainingPercentage.mul(70).div(100);
+        uwuLockPercentage = remainingPercentage.mul(30).div(100);
 
         UwU.approve(address(router), uwuLiquidity);
         BUSD.approve(address(router), bnbToSwapToBusd);
@@ -221,15 +226,29 @@ contract Seed is Ownable, Initializable {
             address userAddr = userAddresses[index];
             User storage instance = Users[userAddr];
 
-            uint256 uwuToTransfer = instance.UwUClaimRoundOne;
             uint256 lpToTransfer =
                 lpBalance.mul(instance.BNBBalance).div(totalBNBDeposited);
 
-            instance.UwUClaimed = instance.UwUClaimed.add(uwuToTransfer);
+            instance.uwuUnlocked = instance
+                .uwuClaim
+                .mul(uwuUnlockPercentage)
+                .div(10**18);
+
+            instance.uwuLocked = instance.uwuClaim.mul(uwuLockPercentage).div(
+                10**18
+            );
+
+            instance.UwULockInLps = instance
+                .uwuClaim
+                .mul(uwuLiquidityPercentage)
+                .div(10**18);
+
+            instance.UwUClaimed = instance.UwUClaimed.add(instance.uwuUnlocked);
             instance.LpSent = lpToTransfer;
 
-            totalUwUDistributed = totalUwUDistributed.add(uwuToTransfer);
-            UwU.transfer(userAddr, uwuToTransfer);
+            totalUwUDistributed = totalUwUDistributed.add(instance.uwuUnlocked);
+
+            UwU.transfer(userAddr, instance.uwuUnlocked);
             pair.transfer(userAddr, lpToTransfer);
         }
     }
@@ -259,7 +278,7 @@ contract Seed is Ownable, Initializable {
             address userAddr = userAddresses[index];
             User storage instance = Users[userAddr];
 
-            uint256 uwuToTransfer = instance.UwUClaimRoundTwo;
+            uint256 uwuToTransfer = instance.uwuLocked;
             instance.UwUClaimed = instance.UwUClaimed.add(uwuToTransfer);
 
             totalUwUDistributed = totalUwUDistributed.add(uwuToTransfer);

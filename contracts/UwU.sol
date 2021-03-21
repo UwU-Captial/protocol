@@ -111,26 +111,26 @@ contract UwU is ERC20, Initializable {
 
         instance.debaseBridgeVal = _totalSupply
             .mul(debaseBridgeTotalRatio_)
-            .div(100);
+            .div(10000);
         instance.debaseBridgeGons = instance.debaseBridgeVal.mul(
             gonsPerFragment
         );
 
         instance.debaseEthLpBridgeVal = _totalSupply
             .mul(debaseEthLpBridgeTotalRatio_)
-            .div(100);
+            .div(10000);
         instance.debaseEthLpBridgeGons = instance.debaseEthLpBridgeVal.mul(
             gonsPerFragment
         );
 
-        instance.UwUBusdLpVal = _totalSupply.mul(UwUBusdLpTotalRatio_).div(100);
+        instance.UwUBusdLpVal = _totalSupply.mul(UwUBusdLpTotalRatio_).div(10000);
         instance.UwUBusdLpGons = instance.UwUBusdLpVal.mul(gonsPerFragment);
 
-        instance.seedPoolVal = _totalSupply.mul(seedPoolTotalRatio_).div(100);
+        instance.seedPoolVal = _totalSupply.mul(seedPoolTotalRatio_).div(10000);
         instance.seedPoolGons = instance.seedPoolVal.mul(gonsPerFragment);
 
         instance.uwuPolicyPoolVal = _totalSupply.mul(uwuPolicyTotalRatio_).div(
-            100
+            10000
         );
         instance.uwuPolicyGons = instance.uwuPolicyPoolVal.mul(gonsPerFragment);
 
