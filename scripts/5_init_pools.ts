@@ -40,25 +40,29 @@ async function main() {
 
 		let tx = await seed.swapBnbAndCreatePancakePair();
 		await tx.wait(1);
-		tx = await seed.transferTokensAndLps(0, 0);
+		tx = await seed.transferTokensAndLps(0, 30);
+		await tx.wait(1);
+		tx = await seed.transferTokensAndLps(31, 60);
+		await tx.wait(1);
+		tx = await seed.transferTokensAndLps(61, 90);
+		await tx.wait(1);
+		tx = await seed.transferTokensAndLps(91, 120);
+		await tx.wait(1);
+		tx = await seed.transferTokensAndLps(121, 150);
+		await tx.wait(1);
+		tx = await seed.transferTokensAndLps(151, 188);
 		await tx.wait(1);
 		tx = await seed.withdrawRemainingBnB();
 		await tx.wait(1);
 
 		const pair = await seed.pair();
 
-		await debaseBridgePool.initialize(dataParse['uwu'], 60 * 7 * 1, '0xbc23987868B0bd549d03A234f610d4203f4d9cf0');
-		await debaseDaiBridgePool.initialize(
-			dataParse['uwu'],
-			60 * 7 * 1,
-			'0xbc23987868B0bd549d03A234f610d4203f4d9cf0'
-		);
-		await uwuMiningPool.initialize(
-			dataParse['uwu'],
-			pair,
-			60 * 3 * 1,
-			'0xbc23987868B0bd549d03A234f610d4203f4d9cf0'
-		);
+		const time = 60 * 60 * 12 + 60 * 60 * 24 * 3;
+		const treasury = '0xbc23987868B0bd549d03A234f610d4203f4d9cf0';
+
+		await debaseBridgePool.initialize(dataParse['uwu'], time, treasury);
+		await debaseDaiBridgePool.initialize(dataParse['uwu'], time, treasury);
+		await uwuMiningPool.initialize(dataParse['uwu'], pair, time, treasury);
 
 		dataParse['uwuBusdLp'] = pair;
 		const updatedData = JSON.stringify(dataParse);
