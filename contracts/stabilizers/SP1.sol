@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: MIT
 /*
 
-██████╗ ███████╗██████╗  █████╗ ███████╗███████╗
-██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
-██║  ██║█████╗  ██████╔╝███████║███████╗█████╗  
-██║  ██║██╔══╝  ██╔══██╗██╔══██║╚════██║██╔══╝  
-██████╔╝███████╗██████╔╝██║  ██║███████║███████╗
-╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
-                                               
+██╗   ██╗██╗    ██╗██╗   ██╗
+██║   ██║██║    ██║██║   ██║
+██║   ██║██║ █╗ ██║██║   ██║
+██║   ██║██║███╗██║██║   ██║
+╚██████╔╝╚███╔███╔╝╚██████╔╝
+ ╚═════╝  ╚══╝╚══╝  ╚═════╝                                             
 
 * UwU: ExpansionRewarder.sol
 * Description:
 * Pool that pool the issues rewards on expansions of uwu supply
-* Coded by: punkUnknown
+* Coded by: punkUnknown, Ryuhei Matsuda
 */
 
 pragma solidity >=0.6.6;
@@ -26,6 +25,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "../interfaces/IUwU.sol";
 import "../interfaces/IUwUPolicy.sol";
+import "../interfaces/IPancakeRouter.sol";
 
 contract LPTokenWrapper {
     using SafeMath for uint256;
@@ -91,6 +91,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     event LogRewardPaid(address indexed user, uint256 reward);
     event LogSetMultiSigPercentage(uint256 multiSigReward_);
     event LogSetMultiSigAddress(address multiSigAddress_);
+    event LogSetTreasuryAddress(address treasury_);
+    event LogSetFeePercentage(address fee_);
 
     IUwU public uwu;
     IUwUPolicy public policy;
@@ -125,6 +127,15 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     bool public enablePoolLpLimit;
     //Total amount of lp total can be staked
     uint256 public poolLpLimit;
+
+    //Pancake Router
+    IPancakeRouter02 constant PANCAKE_ROUTER = IPancakeRouter02("0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F");
+    //UwU -> BUSD exchange path
+    address[] public uwuBusdPath;
+    //Treasury address
+    address public treasury;
+    //Reward fee, times 1e3. ex: 30 for 3%
+    uint256 public fee;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
@@ -246,6 +257,27 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         emit LogSetPoolLpLimit(poolLpLimit);
     }
 
+    /**
+     * @notice Function to set treasury
+     */
+    function setTreasury(address treasury_) external onlyOwner {
+        require(treasury_ != address(0), "Treasury cannot be 0x0");
+        treasury = treasury_;
+        emit LogSetTreasuryAddress(treasury);
+    }
+
+    /**
+     * @notice Function to set fee
+     */
+    function setTreasury(address fee_) external onlyOwner {
+        fee = fee_;
+        emit LogSetFeePercentage(fee);
+    }
+
+    function setUwUBusdPath(address[] memory uwuBusdPath_) public onlyOwner {
+        uwuBusdPath = uwuBusdPath_;
+    }
+
     constructor(
         address uwu_,
         address pairToken_,
@@ -258,7 +290,9 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         bool enableUserLpLimit_,
         uint256 userLpLimit_,
         bool enablePoolLpLimit_,
-        uint256 poolLpLimit_
+        uint256 poolLpLimit_,
+        address treasury_,
+        uint256 fee_
     ) public {
         setStakeToken(pairToken_);
         uwu = IUwU(uwu_);
@@ -275,6 +309,9 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         enableUserLpLimit = enableUserLpLimit_;
         poolLpLimit = poolLpLimit_;
         enablePoolLpLimit = enablePoolLpLimit_;
+
+        treasury = treasury_;
+        fee = fee_;
     }
 
     function triggerStabilizer(
@@ -478,7 +515,14 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             "Rewards: rewards too large, would lock"
         );
 
-        uint256 gonsAmount = uwu.amountToGons(amount);
+        uint256 amountWithoutFee = amount;
+        if (fee > 0 && treasury != address(0)) {
+            uint256 feeAmount = amount.mul(fee).div(1e3);
+            PANCAKE_ROUTER.swapExactTokensForTokens(feeAmount, 0, uwuBusdPath, treasury, block.timestamp);
+            amountWithoutFee = amountWithoutFee.sub(fee);
+        }
+
+        uint256 gonsAmount = uwu.amountToGons(amountWithoutFee);
 
         periodFinish = block.number.add(blockDuration);
         rewardPerTokenStoredMax = 0;
