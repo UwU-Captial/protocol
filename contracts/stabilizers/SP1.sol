@@ -92,7 +92,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     event LogSetMultiSigPercentage(uint256 multiSigReward_);
     event LogSetMultiSigAddress(address multiSigAddress_);
     event LogSetTreasuryAddress(address treasury_);
-    event LogSetFeePercentage(address fee_);
+    event LogSetFeePercentage(uint256 fee_);
 
     IUwU public uwu;
     IUwUPolicy public policy;
@@ -129,7 +129,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     uint256 public poolLpLimit;
 
     //Pancake Router
-    IPancakeRouter02 constant PANCAKE_ROUTER = IPancakeRouter02("0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F");
+    IPancakeRouter02 constant PANCAKE_ROUTER = IPancakeRouter02(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
     //UwU -> BUSD exchange path
     address[] public uwuBusdPath;
     //Treasury address
@@ -269,7 +269,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     /**
      * @notice Function to set fee
      */
-    function setTreasury(address fee_) external onlyOwner {
+    function setFee(uint256 fee_) external onlyOwner {
         fee = fee_;
         emit LogSetFeePercentage(fee);
     }
@@ -518,8 +518,9 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         uint256 amountWithoutFee = amount;
         if (fee > 0 && treasury != address(0)) {
             uint256 feeAmount = amount.mul(fee).div(1e3);
+            uwu.approve(address(PANCAKE_ROUTER), feeAmount);
             PANCAKE_ROUTER.swapExactTokensForTokens(feeAmount, 0, uwuBusdPath, treasury, block.timestamp);
-            amountWithoutFee = amountWithoutFee.sub(fee);
+            amountWithoutFee = amount.sub(feeAmount);
         }
 
         uint256 gonsAmount = uwu.amountToGons(amountWithoutFee);
