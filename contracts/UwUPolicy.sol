@@ -11,7 +11,7 @@
 * UwU: UwUPolicy.sol
 * Description:
 * Policy contract to manage UwU and rewards distributions
-* Coded by: punkUnknown
+* Coded by: punkUnknown, Ryuhei Matsuda
 */
 
 pragma solidity >=0.6.6;
@@ -166,6 +166,9 @@ contract UwUPolicy is Ownable, Initializable {
     // The length of the time window where a rebase operation is allowed to execute, in seconds.
     uint256 public rebaseWindowLengthSec;
 
+    // Target rebase percentage for stabilizers reward distribution
+    uint256 public targetRebasePercentage;
+
     StabilizerPool[] public stabilizerPools;
 
     // THe price target to meet
@@ -236,6 +239,15 @@ contract UwUPolicy is Ownable, Initializable {
     }
 
     /**
+     * @notice Sets the reward target percentage for reward distribution
+     * @param targetRebasePercentage_ Target rebase percentage
+     */
+    function setTargetRebasePercentage(uint256 targetRebasePercentage_) external onlyOwner {
+        targetRebasePercentage = targetRebasePercentage_;
+        emit LogSetPriceTargetRate(targetRebasePercentage_);
+    }
+
+    /**
      * @notice Sets the price target for rebases to compare against
      * @param priceTargetRate_ The new price target
      */
@@ -282,6 +294,8 @@ contract UwUPolicy is Ownable, Initializable {
         priceTargetRate = 10**DECIMALS;
 
         epoch = 0;
+
+        targetRebasePercentage = 20000; // 2%
     }
 
     /**
@@ -330,17 +344,27 @@ contract UwUPolicy is Ownable, Initializable {
             supplyDelta = (MAX_SUPPLY.sub(uwu.totalSupply())).toInt256Safe();
         }
 
-        triggerStabilizers(supplyDelta, rebaseLag, exchangeRate);
+        int256 rebasePercentage;
+        if (supplyDelta >= 0) {
+            rebasePercentage = int(uint(supplyDelta).mul(1e6).div(uwu.totalSupply()));
+        } else {
+            rebasePercentage = -1 * int(uint(-1 * supplyDelta).mul(1e6).div(uwu.totalSupply()));
+        }
+        onBeforeRebase(supplyDelta, rebaseLag, exchangeRate, rebasePercentage);
 
         uint256 supplyAfterRebase = uwu.rebase(epoch, supplyDelta);
         assert(supplyAfterRebase <= MAX_SUPPLY);
+
         emit LogRebase(epoch, exchangeRate, supplyDelta, rebaseLag, now);
+
+        onAfterRebase(rebasePercentage);
     }
 
-    function triggerStabilizers(
+    function onBeforeRebase(
         int256 supplyDelta_,
         int256 rebaseLag_,
-        uint256 exchangeRate_
+        uint256 exchangeRate_,
+        int256 rebasePercentage_
     ) internal {
         for (
             uint256 index = 0;
@@ -349,11 +373,30 @@ contract UwUPolicy is Ownable, Initializable {
         ) {
             StabilizerPool memory instance = stabilizerPools[index];
             if (instance.enabled) {
-                instance.pool.triggerStabilizer(
+                instance.pool.onBeforeRebase(
                     index,
                     supplyDelta_,
                     rebaseLag_,
-                    exchangeRate_
+                    exchangeRate_,
+                    rebasePercentage_
+                );
+            }
+        }
+    }
+
+    function onAfterRebase(
+        int256 rebasePercentage
+    ) internal {
+        for (
+            uint256 index = 0;
+            index < stabilizerPools.length;
+            index = index.add(1)
+        ) {
+            StabilizerPool memory instance = stabilizerPools[index];
+            if (instance.enabled) {
+                instance.pool.onAfterRebase(
+                    index,
+                    rebasePercentage
                 );
             }
         }

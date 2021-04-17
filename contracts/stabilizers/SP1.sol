@@ -314,11 +314,12 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         fee = fee_;
     }
 
-    function triggerStabilizer(
+    function onBeforeRebase(
         uint256 index_,
         int256 supplyDelta_,
         int256 rebaseLag_,
-        uint256 exchangeRate_
+        uint256 exchangeRate_,
+        int256 rebasePercentage_
     ) external {
         require(
             msg.sender == address(policy),
@@ -366,6 +367,16 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
                 pauseRewards();
             }
         }
+    }
+
+    function onAfterRebase(
+        uint256 index_,
+        int256 rebasePercentage
+    ) external {
+        require(
+            msg.sender == address(policy),
+            "Only uwu policy contract can call this"
+        );
     }
 
     /**
