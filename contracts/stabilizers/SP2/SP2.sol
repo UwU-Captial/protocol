@@ -12,7 +12,7 @@
 * UwU: BurnPool.sol
 * Description:
 * Pool that issues coupons for uwu sent to it. Then rewards those coupons when positive rebases happen
-* Coded by: punkUnknown
+* Coded by: punkUnknown, Ryuhei Matsuda
 */
 pragma solidity >=0.6.6;
 
@@ -233,12 +233,14 @@ contract SP2 is Params, CouponRewards, DepositRewards {
      * @param supplyDelta_ Supply delta of the rebase to happen
      * @param rebaseLag_ Rebase lag applied to the supply delta
      * @param exchangeRate_ Exchange rate at which the rebase is happening
+     * @param rebasePercentage_ Rebase percentage
      */
-    function triggerStabilizer(
+    function onBeforeRebase(
         uint256 index_,
         int256 supplyDelta_,
         int256 rebaseLag_,
-        uint256 exchangeRate_
+        uint256 exchangeRate_,
+        int256 rebasePercentage_
     ) external {
         require(
             msg.sender == address(policy),
@@ -327,6 +329,16 @@ contract SP2 is Params, CouponRewards, DepositRewards {
                 issueRewards(index_, exchangeRate_, value);
             }
         }
+    }
+
+    function onAfterRebase(
+        uint256 index_,
+        int256 rebasePercentage_
+    ) external {
+        require(
+            msg.sender == address(policy),
+            "Only uwu policy contract can call this"
+        );
     }
 
     /**
