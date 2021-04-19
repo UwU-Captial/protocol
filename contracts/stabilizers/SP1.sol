@@ -16,16 +16,12 @@
 
 pragma solidity >=0.6.6;
 
+import "./Stabilizer.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-import "../interfaces/IUwU.sol";
-import "../interfaces/IUwUPolicy.sol";
-import "../interfaces/IPancakeRouter.sol";
 
 contract LPTokenWrapper {
     using SafeMath for uint256;
@@ -61,7 +57,7 @@ contract LPTokenWrapper {
     }
 }
 
-contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
+contract SP1 is Stabilizer, LPTokenWrapper, ReentrancyGuard {
     using Address for address;
 
     event LogEmergencyWithdraw(uint256 number);
@@ -94,8 +90,6 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     event LogSetTreasuryAddress(address treasury_);
     event LogSetFeePercentage(uint256 fee_);
 
-    IUwU public uwu;
-    IUwUPolicy public policy;
     uint256 public blockDuration;
     bool public poolEnabled;
 
@@ -127,16 +121,6 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     bool public enablePoolLpLimit;
     //Total amount of lp total can be staked
     uint256 public poolLpLimit;
-
-    //Pancake Router
-    IPancakeRouter02 constant PANCAKE_ROUTER =
-        IPancakeRouter02(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
-    //UwU -> BUSD exchange path
-    address[] public uwuBusdPath;
-    //Treasury address
-    address public treasury;
-    //Reward fee, times 1e3. ex: 30 for 3%
-    uint256 public fee;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
@@ -260,31 +244,11 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         emit LogSetPoolLpLimit(poolLpLimit);
     }
 
-    /**
-     * @notice Function to set treasury
-     */
-    function setTreasury(address treasury_) external onlyOwner {
-        require(treasury_ != address(0), "Treasury cannot be 0x0");
-        treasury = treasury_;
-        emit LogSetTreasuryAddress(treasury);
-    }
-
-    /**
-     * @notice Function to set fee
-     */
-    function setFee(uint256 fee_) external onlyOwner {
-        fee = fee_;
-        emit LogSetFeePercentage(fee);
-    }
-
-    function setUwUBusdPath(address[] memory uwuBusdPath_) public onlyOwner {
-        uwuBusdPath = uwuBusdPath_;
-    }
-
     constructor(
-        address uwu_,
+        IUwU uwu_,
         address pairToken_,
-        address policy_,
+        IUwUPolicy policy_,
+        address[] memory swapPath_,
         uint256 rewardPercentage_,
         uint256 blockDuration_,
         uint256 contractionRewardRatePercentage_,
@@ -296,10 +260,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         uint256 poolLpLimit_,
         address treasury_,
         uint256 fee_
-    ) public {
+    ) public Stabilizer(uwu_, policy_, swapPath_, treasury_, fee_) {
         setStakeToken(pairToken_);
-        uwu = IUwU(uwu_);
-        policy = IUwUPolicy(policy_);
 
         blockDuration = blockDuration_;
         rewardPercentage = rewardPercentage_;
@@ -322,7 +284,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         int256 supplyDelta_,
         int256 rebaseLag_,
         uint256 exchangeRate_
-    ) external {
+    ) external override {
         require(
             msg.sender == address(policy),
             "Only uwu policy contract can call this"
@@ -376,7 +338,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         uint256 supplyBeforeRebase_,
         uint256 supplyAfterRebase_,
         uint256 exchangeRate_
-    ) external {}
+    ) external override {}
 
     /**
      * @notice Function allows for emergency withdrawal of all reward tokens back into stabilizer fund
@@ -489,14 +451,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             if (fee > 0 && treasury != address(0)) {
                 uint256 feeAmount = amountToClaim.mul(fee).div(1 ether);
 
-                uwu.approve(address(PANCAKE_ROUTER), feeAmount);
-                PANCAKE_ROUTER.swapExactTokensForTokens(
-                    feeAmount,
-                    0,
-                    uwuBusdPath,
-                    treasury,
-                    block.timestamp
-                );
+                swapUwUForTokens(feeAmount);
                 amountToClaim = amountToClaim.sub(feeAmount);
             }
 

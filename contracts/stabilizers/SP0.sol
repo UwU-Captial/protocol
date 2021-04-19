@@ -1,25 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.6;
 
+import "./Stabilizer.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "../lib/SafeMathInt.sol";
 
-import "../interfaces/IUwU.sol";
-import "../interfaces/IUwUPolicy.sol";
-import "../interfaces/IPancakeRouter.sol";
-
-contract SP0 is Ownable {
-    IUwUPolicy policy;
+contract SP0 is Stabilizer {
     using SafeMath for uint256;
 
     uint256 targetRebasePercentage;
 
-    constructor(IUwUPolicy policy_) public {
-        policy = policy_;
-    }
+    constructor(
+        IUwU uwu_,
+        IUwUPolicy policy_,
+        address[] memory swapPath_,
+        address treasury_,
+        uint256 fee_
+    ) public Stabilizer(uwu_, policy_, swapPath_, treasury_, fee_) {}
 
     function setTargetRebasePercentage(uint256 targetRebasePercentage_)
         external
@@ -33,14 +32,14 @@ contract SP0 is Ownable {
         int256 supplyDelta_,
         int256 rebaseLag_,
         uint256 exchangeRate_
-    ) external {}
+    ) external override {}
 
     function onAfterRebase(
         uint256 index_,
         uint256 supplyBeforeRebase_,
         uint256 supplyAfterRebase_,
         uint256 exchangeRate_
-    ) external {
+    ) external override {
         require(
             msg.sender == address(policy),
             "Only uwu policy contract can call this"
