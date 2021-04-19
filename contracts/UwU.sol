@@ -42,7 +42,7 @@ contract UwU is ERC20, Initializable {
 
     uint256 private constant DECIMALS = 18;
     uint256 public constant MAX_UINT256 = ~uint256(0);
-    uint256 public constant INITIAL_FRAGMENTS_SUPPLY = 1000000 * 10**DECIMALS;
+    uint256 public constant INITIAL_FRAGMENTS_SUPPLY = 100000 * 10**DECIMALS;
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
@@ -62,99 +62,37 @@ contract UwU is ERC20, Initializable {
 
     constructor() public ERC20("UwU", "UwU") {}
 
-    struct DropVariables {
-        uint256 debaseBridgeVal;
-        uint256 debaseBridgeGons;
-        uint256 debaseEthLpBridgeVal;
-        uint256 debaseEthLpBridgeGons;
-        uint256 UwUBusdLpVal;
-        uint256 UwUBusdLpGons;
-        uint256 seedPoolVal;
-        uint256 seedPoolGons;
-        uint256 uwuPolicyPoolVal;
-        uint256 uwuPolicyGons;
-    }
-
     /**
      * @notice Initializes with the policy,Busd,BusdLp pool as parameters. 
                The function then sets the total supply to the initial supply and calculates the gon per fragment. 
                It also sets the value and the gons for both the Busd and BusdLp reward pools.
-     * @param debaseBridgePool_ Address of the UwU Busd pool contract
-     * @param debaseBridgeTotalRatio_ Ratio of total supply given to UwU Busd Pool
-     * @param debaseEthLpBridgePool_ Address of the UwU Busd Lp pool contract
-     * @param debaseEthLpBridgeTotalRatio_ Ratio of total supply given to UwU Busd Lp Pool
-     * @param UwUBusdLpPool_ Address of the busd Lp Pool
-     * @param UwUBusdLpTotalRatio_ Ratio of total supply given to busd Lp Pool
-     * @param seedPool_ Address of the seed pool
-     * @param seedPoolTotalRatio_ Ratio of total supply given to seed pool
+     * @param airDropperTotalRatio_ Ratio of total supply given to seed pool
      * @param uwuPolicy_ Address of the uwu policy
      * @param uwuPolicyTotalRatio_ Ratio of total supply given to uwu policy
      */
     function initialize(
-        address debaseBridgePool_,
-        uint256 debaseBridgeTotalRatio_,
-        address debaseEthLpBridgePool_,
-        uint256 debaseEthLpBridgeTotalRatio_,
-        address UwUBusdLpPool_,
-        uint256 UwUBusdLpTotalRatio_,
-        address seedPool_,
-        uint256 seedPoolTotalRatio_,
+        uint256 airDropperTotalRatio_,
         address uwuPolicy_,
         uint256 uwuPolicyTotalRatio_
     ) external initializer {
-        DropVariables memory instance;
-
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS.div(_totalSupply);
 
         uwuPolicy = uwuPolicy_;
 
-        instance.debaseBridgeVal = _totalSupply
-            .mul(debaseBridgeTotalRatio_)
-            .div(10000);
-        instance.debaseBridgeGons = instance.debaseBridgeVal.mul(
-            gonsPerFragment
-        );
+        uint256 airDropperVal =
+            _totalSupply.mul(airDropperTotalRatio_).div(10000);
+        uint256 airDropperGons = airDropperVal.mul(gonsPerFragment);
 
-        instance.debaseEthLpBridgeVal = _totalSupply
-            .mul(debaseEthLpBridgeTotalRatio_)
-            .div(10000);
-        instance.debaseEthLpBridgeGons = instance.debaseEthLpBridgeVal.mul(
-            gonsPerFragment
-        );
+        uint256 uwuPolicyPoolVal =
+            _totalSupply.mul(uwuPolicyTotalRatio_).div(10000);
+        uint256 uwuPolicyGons = uwuPolicyPoolVal.mul(gonsPerFragment);
 
-        instance.UwUBusdLpVal = _totalSupply.mul(UwUBusdLpTotalRatio_).div(
-            10000
-        );
-        instance.UwUBusdLpGons = instance.UwUBusdLpVal.mul(gonsPerFragment);
+        gonsBalance[msg.sender] = airDropperGons;
+        gonsBalance[uwuPolicy] = uwuPolicyGons;
 
-        instance.seedPoolVal = _totalSupply.mul(seedPoolTotalRatio_).div(10000);
-        instance.seedPoolGons = instance.seedPoolVal.mul(gonsPerFragment);
-
-        instance.uwuPolicyPoolVal = _totalSupply.mul(uwuPolicyTotalRatio_).div(
-            10000
-        );
-        instance.uwuPolicyGons = instance.uwuPolicyPoolVal.mul(gonsPerFragment);
-
-        gonsBalance[debaseBridgePool_] = instance.debaseBridgeGons;
-        gonsBalance[debaseEthLpBridgePool_] = instance.debaseEthLpBridgeGons;
-        gonsBalance[UwUBusdLpPool_] = instance.UwUBusdLpGons;
-        gonsBalance[seedPool_] = instance.seedPoolGons;
-        gonsBalance[uwuPolicy] = instance.uwuPolicyGons;
-
-        emit Transfer(
-            address(0x0),
-            debaseBridgePool_,
-            instance.debaseBridgeVal
-        );
-        emit Transfer(
-            address(0x0),
-            debaseEthLpBridgePool_,
-            instance.debaseEthLpBridgeVal
-        );
-        emit Transfer(address(0x0), UwUBusdLpPool_, instance.UwUBusdLpVal);
-        emit Transfer(address(0x0), seedPool_, instance.seedPoolVal);
-        emit Transfer(address(0x0), uwuPolicy, instance.uwuPolicyPoolVal);
+        emit Transfer(address(0x0), msg.sender, airDropperVal);
+        emit Transfer(address(0x0), uwuPolicy, uwuPolicyPoolVal);
     }
 
     /**
