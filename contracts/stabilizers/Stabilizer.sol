@@ -28,7 +28,7 @@ abstract contract Stabilizer is Ownable {
         treasury = treasury_;
     }
 
-    function setSwapPath(address[] memory swapPath_) external onlyOwner {
+    function setSwapPath(address[] calldata swapPath_) external onlyOwner {
         swapPath = swapPath_;
     }
 

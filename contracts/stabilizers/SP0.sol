@@ -61,6 +61,7 @@ contract SP0 is Stabilizer {
                     supplyAfterRebase_.mul(rebaseDifference).div(1 ether);
 
                 policy.stabilizerClaimFromFund(index_, amount, address(0), 0);
+                swapUwUForTokens(uwu.balanceOf(address(this)));
             }
         }
     }
