@@ -21,8 +21,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IUwU.sol";
 import "./interfaces/IUwUPolicy.sol";
-import "./interfaces/IPool.sol";
-import "./interfaces/ISeed.sol";
 
 /**
  * @title Orchestrator
@@ -35,15 +33,6 @@ contract Orchestrator is Ownable, Initializable {
     // Stable ordering is not guaranteed.
     IUwU public uwu;
     IUwUPolicy public uwuPolicy;
-
-    IPool public debaseBridgePool;
-    IPool public debaseDaiLpBridgePool;
-    IPool public UwUBusdLpPool;
-    ISeed public seed;
-
-    bool public rebaseStarted;
-    uint256 public maximumRebaseTime;
-    uint256 public rebaseRequiredSupply;
 
     event LogRebaseStarted(uint256 timeStarted);
     event LogAddNewUniPair(address pair);
@@ -69,27 +58,9 @@ contract Orchestrator is Ownable, Initializable {
         syncGas = syncGas_;
     }
 
-    function initialize(
-        address uwu_,
-        address uwuPolicy_,
-        IPool debaseBridgePool_,
-        IPool debaseDaiLpBridgePool_,
-        IPool UwUBusdLpPool_,
-        ISeed seed_,
-        uint256 rebaseRequiredSupply_,
-        uint256 oracleStartTimeOffset
-    ) external initializer {
+    function initialize(address uwu_, address uwuPolicy_) external initializer {
         uwu = IUwU(uwu_);
         uwuPolicy = IUwUPolicy(uwuPolicy_);
-
-        debaseBridgePool = debaseBridgePool_;
-        debaseDaiLpBridgePool = debaseDaiLpBridgePool_;
-        UwUBusdLpPool = UwUBusdLpPool_;
-        seed = seed_;
-
-        maximumRebaseTime = block.timestamp + oracleStartTimeOffset;
-        rebaseStarted = false;
-        rebaseRequiredSupply = rebaseRequiredSupply_;
     }
 
     function addUniPair(address pair) external onlyOwner {
@@ -106,25 +77,6 @@ contract Orchestrator is Ownable, Initializable {
      *         transactions are executed.
      */
     function rebase() external {
-        // Rebase will only be called when 95% of the total supply has been distributed or current time is 2 weeks since the orchestrator was deployed.
-        // To stop the rebase from getting stuck if no enough rewards are distributed.
-        if (!rebaseStarted) {
-            uint256 rewardsDistributed =
-                debaseBridgePool
-                    .rewardDistributed()
-                    .add(debaseDaiLpBridgePool.rewardDistributed())
-                    .add(UwUBusdLpPool.rewardDistributed())
-                    .add(seed.totalUwUDistributed());
-
-            require(
-                rewardsDistributed >= rebaseRequiredSupply ||
-                    block.timestamp >= maximumRebaseTime,
-                "Not enough rewards distributed or time less than start time"
-            );
-
-            rebaseStarted = true;
-            emit LogRebaseStarted(block.timestamp);
-        }
         require(msg.sender == tx.origin); // solhint-disable-line avoid-tx-origin
         uwuPolicy.rebase();
 
