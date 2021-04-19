@@ -6,14 +6,17 @@ interface IStabilizer {
 
     function onBeforeRebase(
         uint256 index,
+        uint256 totalSupply,
         int256 supplyDelta_,
         int256 rebaseLag_,
-        uint256 exchangeRate_,
-        int256 rebasePercentage_
+        uint256 exchangeRate_
     ) external;
 
     function onAfterRebase(
         uint256 index,
-        int256 rebasePercentage_
+        uint256 totalSupply,
+        int256 supplyDelta_,
+        int256 rebaseLag_,
+        uint256 exchangeRate_
     ) external;
 }

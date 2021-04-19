@@ -72,12 +72,12 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         uint256 amount_,
         uint256 currentRewardRate_,
         uint256 expansionRewardRate_,
-        uint256 stabilityRewardRate_,
+        uint256 contractionRewardRate_,
         uint256 cycleEnds_
     );
 
-    event LogSetStabilityRewardRatePercentage(
-        uint256 stabilityRewardRatePercentage_
+    event LogSetContractionRewardRatePercentage(
+        uint256 contractionRewardRatePercentage_
     );
     event LogSetRewardRate(uint256 rewardRate_);
     event LogSetEnableUserLpLimit(bool enableUserLpLimit_);
@@ -111,8 +111,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     uint256 public rewardDistributed;
 
     uint256 public expansionRewardRate;
-    uint256 public stabilityRewardRate;
-    uint256 public stabilityRewardRatePercentage;
+    uint256 public contractionRewardRate;
+    uint256 public contractionRewardRatePercentage;
     uint256 public cycleEnds;
 
     uint256 public multiSigRewardPercentage;
@@ -129,7 +129,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     uint256 public poolLpLimit;
 
     //Pancake Router
-    IPancakeRouter02 constant PANCAKE_ROUTER = IPancakeRouter02(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
+    IPancakeRouter02 constant PANCAKE_ROUTER =
+        IPancakeRouter02(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
     //UwU -> BUSD exchange path
     address[] public uwuBusdPath;
     //Treasury address
@@ -171,11 +172,13 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     /**
      * @notice Function to set how much of the expansion reward rate should be added to neutral reward rate
      */
-    function setStabilityRewardRatePercentage(
-        uint256 stabilityRewardRatePercentage_
+    function setContractionRewardRatePercentage(
+        uint256 contractionRewardRatePercentage_
     ) external onlyOwner {
-        stabilityRewardRatePercentage = stabilityRewardRatePercentage_;
-        emit LogSetStabilityRewardRatePercentage(stabilityRewardRatePercentage);
+        contractionRewardRatePercentage = contractionRewardRatePercentage_;
+        emit LogSetContractionRewardRatePercentage(
+            contractionRewardRatePercentage
+        );
     }
 
     /**
@@ -284,7 +287,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         address policy_,
         uint256 rewardPercentage_,
         uint256 blockDuration_,
-        uint256 stabilityRewardRatePercentage_,
+        uint256 contractionRewardRatePercentage_,
         uint256 multiSigRewardPercentage_,
         address multiSigRewardAddress_,
         bool enableUserLpLimit_,
@@ -301,7 +304,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
         blockDuration = blockDuration_;
         rewardPercentage = rewardPercentage_;
 
-        stabilityRewardRatePercentage = stabilityRewardRatePercentage_;
+        contractionRewardRatePercentage = contractionRewardRatePercentage_;
         multiSigRewardAddress = multiSigRewardAddress_;
         multiSigRewardPercentage = multiSigRewardPercentage_;
 
@@ -316,10 +319,10 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
 
     function onBeforeRebase(
         uint256 index_,
+        uint256 uwuTotalSupply_,
         int256 supplyDelta_,
         int256 rebaseLag_,
-        uint256 exchangeRate_,
-        int256 rebasePercentage_
+        uint256 exchangeRate_
     ) external {
         require(
             msg.sender == address(policy),
@@ -359,25 +362,23 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
                 startRewards();
             }
 
-            if (supplyDelta_ > 0 && rewardRate != expansionRewardRate) {
+            if (supplyDelta_ >= 0 && rewardRate != expansionRewardRate) {
                 changeRewardRate(expansionRewardRate);
-            } else if (supplyDelta_ == 0 && rewardRate != stabilityRewardRate) {
-                changeRewardRate(stabilityRewardRate);
-            } else if (supplyDelta_ < 0 && block.number < periodFinish) {
-                pauseRewards();
+            } else if (
+                supplyDelta_ < 0 && rewardRate != contractionRewardRate
+            ) {
+                changeRewardRate(contractionRewardRate);
             }
         }
     }
 
     function onAfterRebase(
         uint256 index_,
-        int256 rebasePercentage
-    ) external {
-        require(
-            msg.sender == address(policy),
-            "Only uwu policy contract can call this"
-        );
-    }
+        uint256 uwuTotalSupply_,
+        int256 supplyDelta_,
+        int256 rebaseLag_,
+        uint256 exchangeRate_
+    ) external {}
 
     /**
      * @notice Function allows for emergency withdrawal of all reward tokens back into stabilizer fund
@@ -487,6 +488,20 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
 
             uint256 amountToClaim = uwu.gonsToAmount(reward);
 
+            if (fee > 0 && treasury != address(0)) {
+                uint256 feeAmount = amountToClaim.mul(fee).div(1 ether);
+
+                uwu.approve(address(PANCAKE_ROUTER), feeAmount);
+                PANCAKE_ROUTER.swapExactTokensForTokens(
+                    feeAmount,
+                    0,
+                    uwuBusdPath,
+                    treasury,
+                    block.timestamp
+                );
+                amountToClaim = amountToClaim.sub(feeAmount);
+            }
+
             uwu.transfer(msg.sender, amountToClaim);
 
             emit LogRewardPaid(msg.sender, amountToClaim);
@@ -497,14 +512,6 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
     function startRewards() internal {
         lastUpdateBlock = block.number;
         periodFinish = cycleEnds;
-    }
-
-    function pauseRewards()
-        internal
-        updateRewardMax()
-        updateReward(address(0))
-    {
-        periodFinish = block.number;
     }
 
     function changeRewardRate(uint256 rewardRate_)
@@ -526,29 +533,21 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             "Rewards: rewards too large, would lock"
         );
 
-        uint256 amountWithoutFee = amount;
-        if (fee > 0 && treasury != address(0)) {
-            uint256 feeAmount = amount.mul(fee).div(1e3);
-            uwu.approve(address(PANCAKE_ROUTER), feeAmount);
-            PANCAKE_ROUTER.swapExactTokensForTokens(feeAmount, 0, uwuBusdPath, treasury, block.timestamp);
-            amountWithoutFee = amount.sub(feeAmount);
-        }
-
-        uint256 gonsAmount = uwu.amountToGons(amountWithoutFee);
+        uint256 gonsAmount = uwu.amountToGons(amount);
 
         periodFinish = block.number.add(blockDuration);
         rewardPerTokenStoredMax = 0;
         cycleEnds = periodFinish;
 
         expansionRewardRate = gonsAmount.div(blockDuration);
-        stabilityRewardRate = expansionRewardRate
-            .mul(stabilityRewardRatePercentage)
+        contractionRewardRate = expansionRewardRate
+            .mul(contractionRewardRatePercentage)
             .div(10**18);
 
-        if (supplyDelta_ > 0) {
+        if (supplyDelta_ >= 0) {
             rewardRate = expansionRewardRate;
         } else {
-            rewardRate = stabilityRewardRate;
+            rewardRate = contractionRewardRate;
         }
 
         lastUpdateBlock = block.number;
@@ -557,7 +556,7 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
             gonsAmount,
             rewardRate,
             expansionRewardRate,
-            stabilityRewardRate,
+            contractionRewardRate,
             cycleEnds
         );
     }

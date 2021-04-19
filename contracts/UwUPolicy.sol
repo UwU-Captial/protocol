@@ -103,7 +103,11 @@ contract UwUPolicy is Ownable, Initializable {
 
     event LogAddNewStabilizerPool(IStabilizer pool_);
 
-    event LogSetStabilizerPoolEnabled(uint256 index_, bool enabled_);
+    event LogSetStabilizerPoolEnabled(
+        uint256 index_,
+        bool beforeRebaseEnabled_,
+        bool afterRebaseEnabled_
+    );
 
     event LogRewardSentToStabilizer(
         uint256 index,
@@ -119,7 +123,8 @@ contract UwUPolicy is Ownable, Initializable {
     }
 
     struct StabilizerPool {
-        bool enabled;
+        bool beforeRebaseEnabled;
+        bool afterRebaseEnabled;
         IStabilizer pool;
     }
 
@@ -166,9 +171,6 @@ contract UwUPolicy is Ownable, Initializable {
     // The length of the time window where a rebase operation is allowed to execute, in seconds.
     uint256 public rebaseWindowLengthSec;
 
-    // Target rebase percentage for stabilizers reward distribution
-    uint256 public targetRebasePercentage;
-
     StabilizerPool[] public stabilizerPools;
 
     // THe price target to meet
@@ -201,9 +203,17 @@ contract UwUPolicy is Ownable, Initializable {
         _;
     }
 
-    function addNewStabilizerPool(address pool_) external onlyOwner {
+    function addNewStabilizerPool(
+        address pool_,
+        bool beforeRebaseEnabled_,
+        bool afterRebaseEnabled_
+    ) external onlyOwner {
         StabilizerPool memory instance =
-            StabilizerPool(false, IStabilizer(pool_));
+            StabilizerPool(
+                beforeRebaseEnabled_,
+                afterRebaseEnabled_,
+                IStabilizer(pool_)
+            );
 
         stabilizerPools.push(instance);
         emit LogAddNewStabilizerPool(instance.pool);
@@ -216,7 +226,8 @@ contract UwUPolicy is Ownable, Initializable {
     {
         StabilizerPool memory instanceToDelete = stabilizerPools[index];
         require(
-            !instanceToDelete.enabled,
+            !instanceToDelete.beforeRebaseEnabled &&
+                !instanceToDelete.afterRebaseEnabled,
             "Only a disabled pool can be deleted"
         );
         uint256 length = stabilizerPools.length.sub(1);
@@ -228,23 +239,20 @@ contract UwUPolicy is Ownable, Initializable {
         delete instanceToDelete;
     }
 
-    function setStabilizerPoolEnabled(uint256 index, bool enabled)
-        external
-        indexInBounds(index)
-        onlyOwner
-    {
+    function setStabilizerPoolEnabled(
+        uint256 index,
+        bool beforeRebaseEnabled_,
+        bool afterRebaseEnabled_
+    ) external indexInBounds(index) onlyOwner {
         StabilizerPool storage instance = stabilizerPools[index];
-        instance.enabled = enabled;
-        emit LogSetStabilizerPoolEnabled(index, instance.enabled);
-    }
+        instance.beforeRebaseEnabled = beforeRebaseEnabled_;
+        instance.afterRebaseEnabled = afterRebaseEnabled_;
 
-    /**
-     * @notice Sets the reward target percentage for reward distribution
-     * @param targetRebasePercentage_ Target rebase percentage
-     */
-    function setTargetRebasePercentage(uint256 targetRebasePercentage_) external onlyOwner {
-        targetRebasePercentage = targetRebasePercentage_;
-        emit LogSetPriceTargetRate(targetRebasePercentage_);
+        emit LogSetStabilizerPoolEnabled(
+            index,
+            instance.beforeRebaseEnabled,
+            instance.afterRebaseEnabled
+        );
     }
 
     /**
@@ -283,7 +291,7 @@ contract UwUPolicy is Ownable, Initializable {
         lowerDeviationThreshold = 5 * 10**(DECIMALS - 2);
 
         useDefaultRebaseLag = true;
-        defaultPositiveRebaseLag = 15;
+        defaultPositiveRebaseLag = 30;
         defaultNegativeRebaseLag = 30;
 
         minRebaseTimeIntervalSec = 24 hours;
@@ -294,8 +302,6 @@ contract UwUPolicy is Ownable, Initializable {
         priceTargetRate = 10**DECIMALS;
 
         epoch = 0;
-
-        targetRebasePercentage = 20000; // 2%
     }
 
     /**
@@ -344,27 +350,20 @@ contract UwUPolicy is Ownable, Initializable {
             supplyDelta = (MAX_SUPPLY.sub(uwu.totalSupply())).toInt256Safe();
         }
 
-        int256 rebasePercentage;
-        if (supplyDelta >= 0) {
-            rebasePercentage = int(uint(supplyDelta).mul(1e6).div(uwu.totalSupply()));
-        } else {
-            rebasePercentage = -1 * int(uint(-1 * supplyDelta).mul(1e6).div(uwu.totalSupply()));
-        }
-        onBeforeRebase(supplyDelta, rebaseLag, exchangeRate, rebasePercentage);
+        onBeforeRebase(uwu.totalSupply(), supplyDelta, rebaseLag, exchangeRate);
 
         uint256 supplyAfterRebase = uwu.rebase(epoch, supplyDelta);
         assert(supplyAfterRebase <= MAX_SUPPLY);
 
+        onAfterRebase(supplyAfterRebase, supplyDelta, rebaseLag, exchangeRate);
         emit LogRebase(epoch, exchangeRate, supplyDelta, rebaseLag, now);
-
-        onAfterRebase(rebasePercentage);
     }
 
     function onBeforeRebase(
+        uint256 totalSupply_,
         int256 supplyDelta_,
         int256 rebaseLag_,
-        uint256 exchangeRate_,
-        int256 rebasePercentage_
+        uint256 exchangeRate_
     ) internal {
         for (
             uint256 index = 0;
@@ -372,20 +371,23 @@ contract UwUPolicy is Ownable, Initializable {
             index = index.add(1)
         ) {
             StabilizerPool memory instance = stabilizerPools[index];
-            if (instance.enabled) {
+            if (instance.beforeRebaseEnabled) {
                 instance.pool.onBeforeRebase(
                     index,
+                    totalSupply_,
                     supplyDelta_,
                     rebaseLag_,
-                    exchangeRate_,
-                    rebasePercentage_
+                    exchangeRate_
                 );
             }
         }
     }
 
     function onAfterRebase(
-        int256 rebasePercentage
+        uint256 totalSupply_,
+        int256 supplyDelta_,
+        int256 rebaseLag_,
+        uint256 exchangeRate_
     ) internal {
         for (
             uint256 index = 0;
@@ -393,10 +395,13 @@ contract UwUPolicy is Ownable, Initializable {
             index = index.add(1)
         ) {
             StabilizerPool memory instance = stabilizerPools[index];
-            if (instance.enabled) {
+            if (instance.afterRebaseEnabled) {
                 instance.pool.onAfterRebase(
                     index,
-                    rebasePercentage
+                    totalSupply_,
+                    supplyDelta_,
+                    rebaseLag_,
+                    exchangeRate_
                 );
             }
         }
@@ -413,7 +418,7 @@ contract UwUPolicy is Ownable, Initializable {
 
         if (
             msg.sender == address(instance.pool) &&
-            instance.enabled &&
+            (instance.beforeRebaseEnabled || instance.afterRebaseEnabled) &&
             amount.add(feeAmount) <= funderBalance
         ) {
             uwu.transfer(msg.sender, amount);
