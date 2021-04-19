@@ -123,7 +123,9 @@ contract UwU is ERC20, Initializable {
             gonsPerFragment
         );
 
-        instance.UwUBusdLpVal = _totalSupply.mul(UwUBusdLpTotalRatio_).div(10000);
+        instance.UwUBusdLpVal = _totalSupply.mul(UwUBusdLpTotalRatio_).div(
+            10000
+        );
         instance.UwUBusdLpGons = instance.UwUBusdLpVal.mul(gonsPerFragment);
 
         instance.seedPoolVal = _totalSupply.mul(seedPoolTotalRatio_).div(10000);
@@ -163,12 +165,14 @@ contract UwU is ERC20, Initializable {
     function rebase(uint256 epoch, int256 supplyDelta)
         external
         onlyUwUPolicy
-        returns (uint256)
+        returns (uint256, uint256)
     {
         if (supplyDelta == 0) {
             emit LogRebase(epoch, _totalSupply);
-            return _totalSupply;
+            return (0, _totalSupply);
         }
+
+        uint256 oldTotalSupply = _totalSupply;
 
         if (supplyDelta < 0) {
             _totalSupply = _totalSupply.sub(uint256(supplyDelta.abs()));
@@ -183,7 +187,7 @@ contract UwU is ERC20, Initializable {
         gonsPerFragment = TOTAL_GONS.div(_totalSupply);
 
         emit LogRebase(epoch, _totalSupply);
-        return _totalSupply;
+        return (oldTotalSupply, _totalSupply);
     }
 
     /**

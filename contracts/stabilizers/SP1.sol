@@ -319,7 +319,6 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
 
     function onBeforeRebase(
         uint256 index_,
-        uint256 uwuTotalSupply_,
         int256 supplyDelta_,
         int256 rebaseLag_,
         uint256 exchangeRate_
@@ -374,9 +373,8 @@ contract SP1 is Ownable, LPTokenWrapper, ReentrancyGuard {
 
     function onAfterRebase(
         uint256 index_,
-        uint256 uwuTotalSupply_,
-        int256 supplyDelta_,
-        int256 rebaseLag_,
+        uint256 supplyBeforeRebase_,
+        uint256 supplyAfterRebase_,
         uint256 exchangeRate_
     ) external {}
 

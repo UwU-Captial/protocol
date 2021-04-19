@@ -350,17 +350,18 @@ contract UwUPolicy is Ownable, Initializable {
             supplyDelta = (MAX_SUPPLY.sub(uwu.totalSupply())).toInt256Safe();
         }
 
-        onBeforeRebase(uwu.totalSupply(), supplyDelta, rebaseLag, exchangeRate);
+        onBeforeRebase(supplyDelta, rebaseLag, exchangeRate);
 
-        uint256 supplyAfterRebase = uwu.rebase(epoch, supplyDelta);
+        (uint256 supplyBeforeRebase, uint256 supplyAfterRebase) =
+            uwu.rebase(epoch, supplyDelta);
+
         assert(supplyAfterRebase <= MAX_SUPPLY);
 
-        onAfterRebase(supplyAfterRebase, supplyDelta, rebaseLag, exchangeRate);
+        onAfterRebase(supplyBeforeRebase, supplyAfterRebase, exchangeRate);
         emit LogRebase(epoch, exchangeRate, supplyDelta, rebaseLag, now);
     }
 
     function onBeforeRebase(
-        uint256 totalSupply_,
         int256 supplyDelta_,
         int256 rebaseLag_,
         uint256 exchangeRate_
@@ -374,7 +375,6 @@ contract UwUPolicy is Ownable, Initializable {
             if (instance.beforeRebaseEnabled) {
                 instance.pool.onBeforeRebase(
                     index,
-                    totalSupply_,
                     supplyDelta_,
                     rebaseLag_,
                     exchangeRate_
@@ -384,9 +384,8 @@ contract UwUPolicy is Ownable, Initializable {
     }
 
     function onAfterRebase(
-        uint256 totalSupply_,
-        int256 supplyDelta_,
-        int256 rebaseLag_,
+        uint256 supplyBeforeRebase_,
+        uint256 supplyAfterRebase_,
         uint256 exchangeRate_
     ) internal {
         for (
@@ -398,9 +397,8 @@ contract UwUPolicy is Ownable, Initializable {
             if (instance.afterRebaseEnabled) {
                 instance.pool.onAfterRebase(
                     index,
-                    totalSupply_,
-                    supplyDelta_,
-                    rebaseLag_,
+                    supplyBeforeRebase_,
+                    supplyAfterRebase_,
                     exchangeRate_
                 );
             }

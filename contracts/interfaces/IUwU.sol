@@ -29,9 +29,9 @@ interface IUwU {
 
     function rebase(uint256 epoch, int256 supplyDelta)
         external
-        returns (uint256);
+        returns (uint256, uint256);
 
-    function approve(address spender, uint256 value) external returns(bool);
+    function approve(address spender, uint256 value) external returns (bool);
 
     function transfer(address to, uint256 value) external returns (bool);
 
