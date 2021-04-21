@@ -18,12 +18,14 @@
 	},
 	"homepage": "https://github.com/debaseonomics/protocol-bsc#readme",
 	"dependencies": {
+		"@nomiclabs/hardhat-ganache": "^2.0.0",
 		"@openzeppelin/contracts": "^3.4.0",
 		"@openzeppelin/upgrades": "^2.8.0",
 		"@uniswap/lib": "^1.1.4",
 		"@uniswap/sdk": "^3.0.3-beta.1",
 		"@uniswap/v2-core": "^1.0.1",
 		"@uniswap/v2-periphery": "^1.1.0-beta.0",
+		"ganache-core": "^2.13.2",
 		"hardhat-typechain": "^0.3.4",
 		"solc": "^0.6.6"
 	},
